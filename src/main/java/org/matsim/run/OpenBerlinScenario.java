@@ -1,6 +1,7 @@
 package org.matsim.run;
 
 import com.google.inject.Key;
+import com.google.inject.Singleton;
 import com.google.inject.name.Names;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,9 +17,9 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
 import org.matsim.core.router.util.TravelTime;
+import org.matsim.core.scoring.functions.PersonScoringParametersFromPersonAttributes;
+import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.prepare.RunOpenBerlinCalibration;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.AdvancedScoringModule;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import picocli.CommandLine;
@@ -111,9 +112,12 @@ public class OpenBerlinScenario extends MATSimApplication {
 
 		controler.addOverridingModule(new TravelTimeBinding());
 
-		if (ConfigUtils.hasModule(controler.getConfig(), AdvancedScoringConfigGroup.class)) {
-			controler.addOverridingModule(new AdvancedScoringModule());
-		}
+		controler.addOverridingModule( new AbstractModule() {
+			@Override
+			public void install() {
+				bind(ScoringParametersForPerson.class).to(PersonScoringParametersFromPersonAttributes.class).in(Singleton.class);
+			}
+		});
 	}
 
 	/**
