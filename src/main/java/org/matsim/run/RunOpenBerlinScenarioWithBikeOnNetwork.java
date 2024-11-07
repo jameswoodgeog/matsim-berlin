@@ -3,6 +3,8 @@ package org.matsim.run;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.application.MATSimApplication;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
@@ -93,7 +95,6 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 			}
 			case bikeTeleportedStandardMatsim -> {
 				log.info("Simulating assuming bikes are teleported, this is the default in the input config");
-
 			}
 
 			default -> throw new IllegalStateException("Unexpected value: " + bike);
@@ -109,6 +110,16 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 		if (bike == BicycleHandling.onNetworkWithStandardMatsim || bike == BicycleHandling.onNetworkWithBicycleContrib) {
 			for (Person person: scenario.getPopulation().getPersons().values()) {
 				PopulationUtils.resetRoutes(person.getSelectedPlan());
+
+				for (PlanElement planElement:person.getSelectedPlan().getPlanElements()) {
+					if (planElement instanceof Activity activity) {
+						activity.setLinkId(null);
+						activity.setFacilityId(null);
+
+					}
+				}
+
+
 			}
 		}
 
