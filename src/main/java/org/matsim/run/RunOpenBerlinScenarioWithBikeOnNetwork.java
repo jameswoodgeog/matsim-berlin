@@ -2,7 +2,6 @@ package org.matsim.run;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.tools.picocli.CommandLine;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.application.MATSimApplication;
 import org.matsim.core.config.Config;
@@ -24,8 +23,11 @@ import org.matsim.vehicles.VehicleUtils;
 
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
+
+/**
+ * Extend the {@link OpenBerlinScenario} to simulated bike on the network. <br>
+ */
 
 public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 
@@ -154,4 +156,5 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 /**
  * Defines how bicycles are scored.
  */
+@SuppressWarnings("checkstyle:OneTopLevelClass")
 enum BicycleHandling {onNetworkWithStandardMatsim, onNetworkWithBicycleContrib, bikeTeleportedStandardMatsim}
