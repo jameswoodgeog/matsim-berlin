@@ -30,6 +30,7 @@ public class BerlinDashboardProvider implements DashboardProvider {
 			trips,
 			new TravelTimeComparisonDashboard(ApplicationUtils.resolve(config.getContext(), "berlin-v" + OpenBerlinScenario.VERSION + "-routes-ref.csv.gz")),
 			new TrafficCountsDashboard()
+				.withModes(TransportMode.bike, Set.of(TransportMode.bike))
 				.withModes(TransportMode.car, Set.of(TransportMode.car))
 				.withModes(TransportMode.truck, Set.of(TransportMode.truck, "freight"))
 		);
