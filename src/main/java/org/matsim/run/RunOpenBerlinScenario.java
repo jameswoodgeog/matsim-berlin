@@ -12,7 +12,7 @@ public final class RunOpenBerlinScenario {
 	}
 
 	public static void main(String[] args) {
-		MATSimApplication.runWithDefaults(OpenBerlinScenario.class, args);
+		MATSimApplication.run(OpenBerlinCarfreeScenario.class, args);
 	}
 
 }
