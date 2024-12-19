@@ -6,10 +6,10 @@
 		<artifactId>matsim-all</artifactId>
 
 		<!-- PR-labelled release -->
-		<version>2025.0-PR3350</version>
+<!--		<version>2025.0-PR3350</version>-->
 
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
-<!--		<version>2025.0-SNAPSHOT</version>-->
+		<version>2025.0-SNAPSHOT</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -36,6 +36,12 @@
 		<dependency>
 			<groupId>org.matsim</groupId>
 			<artifactId>matsim</artifactId>
+			<version>${matsim.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.matsim.contrib</groupId>
+			<artifactId>distributed-simulation</artifactId>
 			<version>${matsim.version}</version>
 		</dependency>
 
@@ -76,6 +82,10 @@
 				<exclusion>
 					<groupId>xerces</groupId>
 					<artifactId>xercesImpl</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>com.github.matsim-org</groupId>
+					<artifactId>gtfs2matsim</artifactId>
 				</exclusion>
 			</exclusions>
 		</dependency>
