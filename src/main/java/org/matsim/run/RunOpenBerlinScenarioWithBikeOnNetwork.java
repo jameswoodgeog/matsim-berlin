@@ -130,7 +130,11 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 				if (link.getAllowedModes().contains(TransportMode.car)) {
 					if (!link.getAllowedModes().contains(TransportMode.pt) && !link.getAttributes().getAttribute("type").equals("motorway") ||
 						!link.getAttributes().getAttribute("type").equals("trunk") || !link.getAttributes().getAttribute("type").equals("motorway_link") ||
-						!link.getAttributes().getAttribute("type").equals("trunk_link")) {
+						!link.getAttributes().getAttribute("type").equals("trunk_link") || !link.getAttributes().getAttribute("type").equals("'highway.motorway")
+						|| !link.getAttributes().getAttribute("type").equals("'highway.motorway_link'")
+						|| !link.getAttributes().getAttribute("type").equals("'highway.trunk'")
+						|| !link.getAttributes().getAttribute("type").equals("'highway.trunk_link'")
+					) {
 						Set<String> allowedModes = Sets.newHashSet(TransportMode.bike);
 						allowedModes.addAll(link.getAllowedModes());
 						link.setAllowedModes(allowedModes);
