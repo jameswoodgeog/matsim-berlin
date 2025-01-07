@@ -3,8 +3,6 @@ package org.matsim.run;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.population.Activity;
-import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.application.MATSimApplication;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
@@ -25,7 +23,6 @@ import org.matsim.vehicles.VehicleUtils;
 
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -130,10 +127,10 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 				if (link.getAllowedModes().contains(TransportMode.car)) {
 					if (!link.getAllowedModes().contains(TransportMode.pt) && !link.getAttributes().getAttribute("type").equals("motorway") ||
 						!link.getAttributes().getAttribute("type").equals("trunk") || !link.getAttributes().getAttribute("type").equals("motorway_link") ||
-						!link.getAttributes().getAttribute("type").equals("trunk_link") || !link.getAttributes().getAttribute("type").equals("'highway.motorway")
-						|| !link.getAttributes().getAttribute("type").equals("'highway.motorway_link'")
-						|| !link.getAttributes().getAttribute("type").equals("'highway.trunk'")
-						|| !link.getAttributes().getAttribute("type").equals("'highway.trunk_link'")
+						!link.getAttributes().getAttribute("type").equals("trunk_link") || !link.getAttributes().getAttribute("type").equals("highway.motorway")
+						|| !link.getAttributes().getAttribute("type").equals("highway.motorway_link")
+						|| !link.getAttributes().getAttribute("type").equals("highway.trunk")
+						|| !link.getAttributes().getAttribute("type").equals("highway.trunk_link")
 					) {
 						Set<String> allowedModes = Sets.newHashSet(TransportMode.bike);
 						allowedModes.addAll(link.getAllowedModes());
