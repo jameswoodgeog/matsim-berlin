@@ -97,15 +97,15 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 		if (innovationRate != null) {
 
 			// Set start value for innovation rate
-			for (ReplanningAnnealerConfigGroup.AnnealingVariable var : config.replanningAnnealer().getAllAnnealingVariables()) {
+			for (ReplanningAnnealerConfigGroup.AnnealingVariable v : config.replanningAnnealer().getAllAnnealingVariables()) {
 
-				var.setStartValue(innovationRate);
+				v.setStartValue(innovationRate);
 
 				// Note that this adjust the shape of the annealing
-				var.setShapeFactor(10.0/config.controller().getLastIteration());
-				var.setHalfLife(2d/3d);
+				v.setShapeFactor(10.0/config.controller().getLastIteration());
+				v.setHalfLife(2d/3d);
 
-				log.info("Setting innovation rate for {} to {}", var.getSubpopulation(), innovationRate);
+				log.info("Setting innovation rate for {} to {}", v.getSubpopulation(), innovationRate);
 			}
 
 		}
