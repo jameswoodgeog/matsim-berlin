@@ -14,6 +14,7 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
 import org.matsim.core.replanning.choosers.BalancedInnovationStrategyChooser;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.router.TripStructureUtils;
@@ -67,6 +68,9 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 		defaultValue = InformedModeChoiceModule.SELECT_SUBTOUR_MODE_STRATEGY)
 	private String strategy;
 
+	@CommandLine.Option(names = "--innovation-rate", description = "Overwrite the innovation rate for annealing", defaultValue = "null")
+	private Double innovationRate = null;
+
 	public static void main(String[] args) {
 		MATSimApplication.execute(OpenBerlinChoiceExperiment.class, args);
 	}
@@ -88,6 +92,23 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 	protected Config prepareConfig(Config config) {
 
 		config = super.prepareConfig(config);
+
+
+		if (innovationRate != null) {
+
+			// Set start value for innovation rate
+			for (ReplanningAnnealerConfigGroup.AnnealingVariable var : config.replanningAnnealer().getAllAnnealingVariables()) {
+
+				var.setStartValue(innovationRate);
+
+				// Note that this adjust the shape of the annealing
+				var.setShapeFactor(10.0/config.controller().getLastIteration());
+				var.setHalfLife(2d/3d);
+
+				log.info("Setting innovation rate for {} to {}", var.getSubpopulation(), innovationRate);
+			}
+
+		}
 
 		if (imc) {
 
