@@ -102,7 +102,11 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 				v.setStartValue(innovationRate);
 
 				// Note that this adjust the shape of the annealing
-				v.setShapeFactor(10.0/config.controller().getLastIteration());
+				if (iterations > 0)
+					v.setShapeFactor(10.0/iterations);
+				else if (iterations < 0)
+					v.setShapeFactor(10.0/config.controller().getLastIteration());
+
 				v.setHalfLife(2d/3d);
 
 				log.info("Setting innovation rate for {} to {}", v.getSubpopulation(), innovationRate);
