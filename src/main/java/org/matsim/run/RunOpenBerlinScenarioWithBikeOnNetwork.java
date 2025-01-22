@@ -1,5 +1,6 @@
 package org.matsim.run;
 
+import com.sun.jdi.connect.Transport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Scenario;
@@ -16,6 +17,8 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.contrib.bicycle.BicycleModule;
+import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.vehicles.VehicleType;
@@ -23,6 +26,7 @@ import org.matsim.vehicles.VehicleUtils;
 
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -124,20 +128,20 @@ public class RunOpenBerlinScenarioWithBikeOnNetwork extends OpenBerlinScenario {
 
 		if (bike == BicycleHandling.onNetworkWithStandardMatsim || bike == BicycleHandling.onNetworkWithBicycleContrib) {
 			for (Link link: scenario.getNetwork().getLinks().values()) {
+				// if it is a car link bikes can be added
 				if (link.getAllowedModes().contains(TransportMode.car)) {
-					if (!link.getAllowedModes().contains(TransportMode.pt) && !link.getAttributes().getAttribute("type").equals("motorway") ||
-						!link.getAttributes().getAttribute("type").equals("trunk") || !link.getAttributes().getAttribute("type").equals("motorway_link") ||
-						!link.getAttributes().getAttribute("type").equals("trunk_link") || !link.getAttributes().getAttribute("type").equals("highway.motorway")
-						|| !link.getAttributes().getAttribute("type").equals("highway.motorway_link")
-						|| !link.getAttributes().getAttribute("type").equals("highway.trunk")
-						|| !link.getAttributes().getAttribute("type").equals("highway.trunk_link")
-					) {
+					//check OSM link type
+					String type = (String) link.getAttributes().getAttribute("type");
+					//not add bikes to trunk and motorways
+					if(!type.contains("motorway") && !type.contains("trunk")) {
 						Set<String> allowedModes = Sets.newHashSet(TransportMode.bike);
 						allowedModes.addAll(link.getAllowedModes());
 						link.setAllowedModes(allowedModes);
 					}
 				}
 			}
+			//run network cleander for
+			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 	}
 
