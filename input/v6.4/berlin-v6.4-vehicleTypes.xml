@@ -12,6 +12,14 @@
 		</attributes>
 		<length meter="7.5"/>
 		<width meter="1.0"/>
+		<engineInformation>
+			<attributes>
+				<attribute name="HbefaVehicleCategory" class="java.lang.String">PASSENGER_CAR</attribute>
+				<attribute name="HbefaTechnology" class="java.lang.String">average</attribute>
+				<attribute name="HbefaSizeClass" class="java.lang.String">average</attribute>
+				<attribute name="HbefaEmissionsConcept" class="java.lang.String">petrol (4S)</attribute>
+			</attributes>
+		</engineInformation>
 		<passengerCarEquivalents pce="1.0"/>
 	</vehicleType>
 
@@ -27,6 +35,15 @@
 		<!-- Note that this speed includes all the effects of delays that might occur, such as waiting for traffic lights -->
 		<!-- The reported data is 10.29 km/h, it needs to set higher here (+0.4) because this includes access/egress as well -->
 		<maximumVelocity meterPerSecond="2.98"/>
+
+		<engineInformation>
+			<attributes>
+				<attribute name="HbefaVehicleCategory" class="java.lang.String">NON_HBEFA_VEHICLE</attribute>
+				<attribute name="HbefaTechnology" class="java.lang.String">average</attribute>
+				<attribute name="HbefaSizeClass" class="java.lang.String">average</attribute>
+			</attributes>
+		</engineInformation>
+
 		<passengerCarEquivalents pce="0.2"/>
 		<networkMode networkMode="bike"/>
 	</vehicleType>
@@ -51,6 +68,16 @@
 		</attributes>
 		<length meter="15.0"/>
 		<width meter="1.0"/>
+
+		<engineInformation>
+			<attributes>
+				<attribute name="HbefaVehicleCategory" class="java.lang.String">HEAVY_GOODS_VEHICLE</attribute>
+				<attribute name="HbefaTechnology" class="java.lang.String">average</attribute>
+				<attribute name="HbefaSizeClass" class="java.lang.String">average</attribute>
+				<attribute name="HbefaEmissionsConcept" class="java.lang.String">diesel</attribute>
+			</attributes>
+		</engineInformation>
+
 		<passengerCarEquivalents pce="3.5"/>
 		<networkMode networkMode="truck"/>
 	</vehicleType>
@@ -63,6 +90,16 @@
 		</attributes>
 		<length meter="15.0"/>
 		<width meter="1.0"/>
+
+		<engineInformation>
+			<attributes>
+				<attribute name="HbefaVehicleCategory" class="java.lang.String">HEAVY_GOODS_VEHICLE</attribute>
+				<attribute name="HbefaTechnology" class="java.lang.String">average</attribute>
+				<attribute name="HbefaSizeClass" class="java.lang.String">average</attribute>
+				<attribute name="HbefaEmissionsConcept" class="java.lang.String">diesel</attribute>
+			</attributes>
+		</engineInformation>
+
 		<passengerCarEquivalents pce="3.5"/>
 		<networkMode networkMode="truck"/>
 	</vehicleType>
