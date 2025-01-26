@@ -68,8 +68,8 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 		defaultValue = InformedModeChoiceModule.SELECT_SUBTOUR_MODE_STRATEGY)
 	private String strategy;
 
-	@CommandLine.Option(names = "--innovation-rate", description = "Overwrite the innovation rate for annealing", defaultValue = "null")
-	private Double innovationRate = null;
+	@CommandLine.Option(names = "--innovation-rate", description = "Overwrite the innovation rate for annealing", defaultValue = "-1")
+	private double innovationRate;
 
 	public static void main(String[] args) {
 		MATSimApplication.execute(OpenBerlinChoiceExperiment.class, args);
@@ -94,14 +94,14 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 		config = super.prepareConfig(config);
 
 
-		if (innovationRate != null) {
+		if (innovationRate >= 0) {
 
 			// Set start value for innovation rate
 			for (ReplanningAnnealerConfigGroup.AnnealingVariable v : config.replanningAnnealer().getAllAnnealingVariables()) {
 
 				v.setStartValue(innovationRate);
 
-				// Note that this adjust the shape of the annealing
+				// Note that this adjusts the shape of the annealing
 				if (iterations > 0)
 					v.setShapeFactor(10.0/iterations);
 				else if (iterations < 0)
