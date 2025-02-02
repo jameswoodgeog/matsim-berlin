@@ -1,0 +1,175 @@
+---
+title: "parking_osm"
+output: html_document
+---
+
+Set your working directory
+```{r setup, include=FALSE}
+setwd("~/git/matsim-berlin")
+```
+
+```{r}
+#install.packages("osmdata")
+
+library(tidyverse)
+library(sf)
+library(osmdata)
+library(tmap)
+library(matsim)
+
+```
+
+# Reading Inputs
+MATSim Network
+```{r}
+input_network_filename <- "berlin-v6.3-network-with-pt.xml.gz"
+
+download.file("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.3/input/berlin-v6.3-network-with-pt.xml.gz", input_network_filename)
+network_berlin <- matsim::read_network(input_network_filename)
+```
+Read in boundaries of Berlin:
+```{r}
+berlin_districts_shp_url <- "https://tsb-opendata.s3.eu-central-1.amazonaws.com/bezirksgrenzen/bezirksgrenzen.shp.zip"
+
+berlin_districts_shp_filename <- "bezirksgrenzen.shp.zip"
+download.file(berlin_districts_shp_url, berlin_districts_shp_filename)
+berlin_districts_shp <- st_read(berlin_districts_shp_filename) %>% st_transform(25832)
+```
+
+Read in area within S-Bahn Ring (Hundekopf)
+
+```{r}
+hundekopf <- st_read("input/v6.3/hundekopf-shp/hundekopf-carBanArea-25832.shp")
+```
+
+# Question 1: How many public parking spots are there per meter of MATSim link.
+```{r}
+# turn matsim nodes into sf objects
+nodes <- network_berlin$nodes %>%  st_as_sf(coords = c("x","y"), crs = 25832)
+
+# gather nodes that are within berlin shp file
+nodes_in_berlin <- nodes %>% st_filter(berlin_districts_shp) 
+
+# do a quick plausibility check
+tmap_mode("view")
+tm_shape(nodes_in_berlin) + tm_dots()
+
+# gather all links that either have from node or to node within berlin, or both. 
+nodes_in_berlin_ids <- nodes_in_berlin %>% pull(id)
+links_in_berlin <- network_berlin$links %>% filter(from %in% nodes_in_berlin_ids | to %in% nodes_in_berlin_ids)
+
+# find sum of link lengths:
+total_link_length_berlin <- sum(links_in_berlin$length)
+
+# total parking spots from https://www.berlin.de/aktuelles/9275007-958090-12-millionen-parkplaetze-neue-karte-zeig.html#:~:text=In%20ganz%20Berlin%20gibt%20es,wurden%2C%20wie%20die%20Senatsverkehrsverwaltung%20mitteilte
+total_parking_spots_berlin <- 1276312
+
+total_parking_spots_berlin / total_link_length_berlin
+
+total_link_length_berlin / total_parking_spots_berlin
+
+```
+Result = 0.07 parking spots per meter of links. Or, in reverse, there is a parking spot every 14 meters on average. This seems reasonable, since there are many roads where parking is not possible (i.e. all the highways)
+
+Discussion: this is the most basic measurement. To diffferentiate a bit more, we could:
+- differentiate by within hundekopf and outside of hundekopf (according to above source, there are 230,000 parking spots within the ring. The rest are outside)
+- differentiate by road type. There shouldn't be parking spots on highways.
+
+# Question 2: Parking Houses from OSM
+
+Searching for Amenity "parking". I've filtered just the polygons to Friedrichhain-Kreuzberg, so RStudio doesn't explode ;)
+```{r}
+tmap_mode("view")
+amenity <- opq(bbox = 'Berlin, Germany')  %>%
+  add_osm_feature(key = "amenity", value = "parking") %>% 
+  osmdata_sf() 
+
+tmap_options(check.and.fix = TRUE)
+# st_is_valid(amenity$osm_polygons)
+
+# POLYGONS
+amenity$osm_polygons %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  st_filter(berlin_districts_shp %>% filter(Gemeinde_n == "Friedrichshain-Kreuzberg")) %>% 
+  tm_shape()+
+  tm_polygons(col = "parking")
+
+# MULTIPOLYGONS
+amenity$osm_polygons %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  # st_filter(berlin_districts_shp %>% filter(Gemeinde_n == "Friedrichshain-Kreuzberg")) %>% 
+  tm_shape()+
+  tm_polygons(col = "parking")
+
+# LINES
+amenity$osm_lines %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  tm_shape()+
+  tm_lines(col = "red", lwd = 3)
+
+# MULTILINES
+amenity$osm_multilines %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  tm_shape()+
+  tm_lines(col = "red", lwd = 3)
+
+
+
+# POINTS
+amenity$osm_points %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  st_filter(berlin_districts_shp %>% filter(Gemeinde_n == "Friedrichshain-Kreuzberg")) %>% 
+  tm_shape()+
+  tm_dots(col = "parking")
+
+
+
+```
+
+Discussion:
+- From the amenity type "parking", I think polygons and multipolygons are most interesting. However, I think we can filter out: "lane", "half_on_kerb", "on_kerb", "shoulder", and "street_side"? These, I'm guessing, overlap with the public on-street parking records that we calculated in part 1. 
+- lines and multilines are not so relevant. 
+I assume points are also not so relevant
+
+
+And now, Searching for Building = "carport","garage","garages","parking"
+
+```{r}
+
+building <- opq(bbox = 'Berlin, Germany')  %>%
+  add_osm_feature(key = "building", value = c("carport","garage","garages","parking")) %>% 
+  osmdata_sf() 
+
+# POLYGONS
+building$osm_polygons %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  # st_filter(berlin_districts_shp %>% filter(Gemeinde_n == "Friedrichshain-Kreuzberg")) %>% 
+  tm_shape()+
+  tm_polygons()
+
+# MULTIPOLYGONS
+building$osm_polygons %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  # st_filter(berlin_districts_shp %>% filter(Gemeinde_n == "Friedrichshain-Kreuzberg")) %>% 
+  tm_shape()+
+  tm_polygons(col = "parking")
+
+# POINTS
+building$osm_points %>% 
+  st_transform(25832) %>% 
+  filter(st_is_valid(.)) %>% 
+  tm_shape()+
+  tm_dots(col = "parking")
+
+```
+Discussion:
+- We need to compare parking buildinsg with the parking amenities. I assume, all parking buildings are also tagged as amenity parking, but not vice versa (because some parking gargages are in mixed-use buildings)
+- I don't know what to make of the point data. Doesn't really make sense for buildings...
+
