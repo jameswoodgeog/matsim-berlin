@@ -1,7 +1,7 @@
 
 
 JAR := matsim-berlin-*.jar
-V := v6.4
+V := v6.5
 CRS := EPSG:25832
 
 p := input/$V
@@ -372,7 +372,7 @@ $p/berlin-$V.drt-by-rndLocations-10000vehicles-4seats.xml.gz: $p/berlin-$V-netwo
 	 --seats 4
 
 
-prepare-calibration: $p/berlin-cadyts-input-$V-25pct.plans.xml.gz $p/berlin-$V-network-with-pt.xml.gz $p/berlin-$V-counts-vmz.xml.gz
+prepare-calibration: $p/berlin-activities-$V-25pct.plans.xml.gz $p/berlin-$V-network-with-pt.xml.gz $p/berlin-$V-counts-vmz.xml.gz
 	echo "Done"
 
 prepare-initial: $p/berlin-$V-25pct.plans-initial.xml.gz $p/berlin-$V-network-with-pt.xml.gz
