@@ -257,9 +257,9 @@ So let's look at the building polygons in relation to amenities
 ```{r}
 tmap_mode("view")
 tm_shape(amenity_polygon_filtered) + 
-  tm_polygons(col = "red", alpha = 0.5) + 
+  tm_polygons(col = "black", alpha = 0.5) + 
   tm_shape(buildings_polygons)+
-  tm_polygons(col = "blue", alpha = 0.5)
+  tm_polygons(col = "building", alpha = 0.5)
 
 
 buildings_filt <- buildings_polygons %>% st_filter(amenity_polygon_filtered)
