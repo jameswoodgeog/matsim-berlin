@@ -21,6 +21,8 @@ import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.vehicles.VehicleType;
 import org.matsim.vehicles.VehicleUtils;
+import picocli.CommandLine;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
@@ -32,11 +34,11 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 	private static final Logger log = LogManager.getLogger(RunOpenBerlinWithBikeOnNetwork.class);
 
-	@picocli.CommandLine.Option(names = "--bike", defaultValue = "bikeTeleportedStandardMatsim", description = "Define how bicycles are simulated")
-	private BicycleHandling bike;
+	@CommandLine.Option(names = "--bike", defaultValue = "bikeTeleportedStandardMatsim", description = "Define how bicycles are simulated")
+	private BicycleHandling bicycleHandling;
 
 	public static void main(String[] args) {
-		MATSimApplication.run(OpenBerlinDrtScenario.class, args);
+		MATSimApplication.run(RunOpenBerlinWithBikeOnNetwork.class, args);
 	}
 
 	@Override
@@ -50,7 +52,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			}
 		}
 
-		switch (bike) {
+		switch (bicycleHandling) {
 
 			case onNetworkWithStandardMatsim -> {
 				log.info("Simulating with bikes on the network");
@@ -90,7 +92,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 				log.info("Simulating assuming bikes are teleported, this is the default in the input config");
 			}
 
-			default -> throw new IllegalStateException("Unexpected value: " + bike);
+			default -> throw new IllegalStateException("Unexpected value: " + bicycleHandling);
 		}
 
 
@@ -101,14 +103,14 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 		prepareScenario(scenario);
-		if (bike == BicycleHandling.onNetworkWithStandardMatsim || bike == BicycleHandling.onNetworkWithBicycleContrib) {
+		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			for (Person person: scenario.getPopulation().getPersons().values()) {
 				PopulationUtils.resetRoutes(person.getSelectedPlan());
 			}
 		}
 
 		// we need to define a vehicle type if we want to route bikes on the network
-		if (bike == BicycleHandling.onNetworkWithStandardMatsim || bike == BicycleHandling.onNetworkWithBicycleContrib) {
+		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			Id<VehicleType> typeId = Id.create(TransportMode.bike, VehicleType.class);
 			VehicleType bikeVehicle = VehicleUtils.createVehicleType(typeId);
 			// I took these values from: https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/leipzig/leipzig-v1.3/input/leipzig-v1.3-vehicle-types.xml
@@ -120,7 +122,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			scenario.getVehicles().addVehicleType(bikeVehicle);
 		}
 
-		if (bike == BicycleHandling.onNetworkWithStandardMatsim || bike == BicycleHandling.onNetworkWithBicycleContrib) {
+		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			for (Link link: scenario.getNetwork().getLinks().values()) {
 				// if it is a car link bikes can be added
 				if (link.getAllowedModes().contains(TransportMode.car)) {
@@ -145,7 +147,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	protected void prepareControler(Controler controler) {
 		prepareControler(controler);
 
-		if (bike == BicycleHandling.onNetworkWithBicycleContrib) {
+		if (bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			controler.addOverridingModule(new BicycleModule());
 		}
 	}
