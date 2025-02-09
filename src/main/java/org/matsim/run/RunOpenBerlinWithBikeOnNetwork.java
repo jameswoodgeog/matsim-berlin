@@ -102,7 +102,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 	@Override
 	protected void prepareScenario(Scenario scenario) {
-		prepareScenario(scenario);
+		super.prepareScenario(scenario);
 		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			for (Person person: scenario.getPopulation().getPersons().values()) {
 				PopulationUtils.resetRoutes(person.getSelectedPlan());
@@ -145,7 +145,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 	@Override
 	protected void prepareControler(Controler controler) {
-		prepareControler(controler);
+		super.prepareControler(controler);
 
 		if (bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			controler.addOverridingModule(new BicycleModule());
