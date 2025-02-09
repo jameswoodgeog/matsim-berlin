@@ -32,8 +32,8 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 	private static final Logger log = LogManager.getLogger(RunOpenBerlinWithBikeOnNetwork.class);
 
-	@picocli.CommandLine.Option(names = "--bike", defaultValue = "bikeTeleportedStandardMatsim"
-		, description = "Define how bicycles are simulated") private BicycleHandling bike;
+	@picocli.CommandLine.Option(names = "--bike", defaultValue = "bikeTeleportedStandardMatsim", description = "Define how bicycles are simulated")
+	private BicycleHandling bike;
 
 	public static void main(String[] args) {
 		MATSimApplication.run(OpenBerlinDrtScenario.class, args);
