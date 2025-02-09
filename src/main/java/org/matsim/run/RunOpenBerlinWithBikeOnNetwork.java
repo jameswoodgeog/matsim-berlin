@@ -3,7 +3,6 @@ package org.matsim.run;
 import org.apache.commons.compress.utils.Sets;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
@@ -19,8 +18,6 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
-import org.matsim.vehicles.VehicleType;
-import org.matsim.vehicles.VehicleUtils;
 import picocli.CommandLine;
 
 import java.util.Collection;
@@ -111,7 +108,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 		// we need to define a vehicle type if we want to route bikes on the network
 		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
-			Id<VehicleType> typeId = Id.create(TransportMode.bike, VehicleType.class);
+			/*Id<VehicleType> typeId = Id.create(TransportMode.bike, VehicleType.class);
 			VehicleType bikeVehicle = VehicleUtils.createVehicleType(typeId);
 			// I took these values from: https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/leipzig/leipzig-v1.3/input/leipzig-v1.3-vehicle-types.xml
 			bikeVehicle.setMaximumVelocity(4.16);
@@ -119,7 +116,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			bikeVehicle.setWidth(1.0);
 			bikeVehicle.setNetworkMode(TransportMode.bike);
 			bikeVehicle.setPcuEquivalents(0.2);
-			scenario.getVehicles().addVehicleType(bikeVehicle);
+			scenario.getVehicles().addVehicleType(bikeVehicle); */
 		}
 
 		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
