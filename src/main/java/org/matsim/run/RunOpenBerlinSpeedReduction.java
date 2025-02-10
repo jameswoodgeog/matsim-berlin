@@ -19,6 +19,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/*
+Simple class to run the open berlin scenario with reduced free speed.
+ */
 public class RunOpenBerlinSpeedReduction extends OpenBerlinScenario {
 
 	private static final Logger log = LoggerFactory.getLogger(RunOpenBerlinSpeedReduction.class);
@@ -26,7 +29,7 @@ public class RunOpenBerlinSpeedReduction extends OpenBerlinScenario {
 	@CommandLine.Option(names = "--slowSpeed-area", description = "Path to SHP file specifying slow speed area", required = true, defaultValue = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/input/shp/Berlin_25832.shp")
 	private Path slowSpeedArea;
 
-	@CommandLine.Option(names = "speed reduction", description = "Define how much car speed is reduced", required = true, defaultValue = "0.6")
+	@CommandLine.Option(names = "--speed reduction", description = "Define how much car speed is reduced", required = true, defaultValue = "0.6")
 	private double speedReduction;
 
 	public static void main(String[] args) {
@@ -74,5 +77,6 @@ public class RunOpenBerlinSpeedReduction extends OpenBerlinScenario {
 				//20 km/h --> 5.5 m/s
 				link.setFreespeed(5.5)
 			);
-		} }
+		}
+	}
 }
