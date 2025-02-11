@@ -1,5 +1,6 @@
 package org.matsim.run.scoring.parking;
 
+import com.google.inject.Inject;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
@@ -12,8 +13,10 @@ import java.util.stream.Collectors;
  * A kernel function that assigns a constant weight to all links within a certain distance. Takes the middle of the link as the center of the disk.
  */
 public class ConstantKernelFunction implements KernelFunction {
+	// this might be replaced by a LinkQuadTree from the network, but the getDisk method would have to be implemented there.
 	QuadTree<Id<Link>> quadTree;
 
+	@Inject
 	public ConstantKernelFunction(Network network) {
 		double xMin = network.getNodes().values().parallelStream().mapToDouble(node -> node.getCoord().getX()).min().orElse(Double.POSITIVE_INFINITY);
 		double yMin = network.getNodes().values().parallelStream().mapToDouble(node -> node.getCoord().getY()).min().orElse(Double.POSITIVE_INFINITY);

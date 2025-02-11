@@ -13,6 +13,8 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.modechoice.estimators.ActivityEstimator;
+import org.matsim.modechoice.estimators.LegEstimator;
 import org.matsim.vehicles.Vehicle;
 
 import java.util.HashMap;
@@ -24,12 +26,12 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 	static final String LINK_ON_STREET_SPOTS = "onstreet_spots";
 	static final String LINK_OFF_STREET_SPOTS = "offstreet_spots";
 
-	//injected
 	Network network;
 	KernelFunction kernelFunction;
 	PenaltyFunction penaltyFunction;
 	EventsManager eventsManager;
-
+	ActivityEstimator activityEstimator;
+	LegEstimator legEstimator;
 
 	//state
 	Set<Id<Vehicle>> knownPtVehicles = new HashSet<>();
@@ -38,19 +40,23 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 	int[] capacity;
 
 	//TODO
-	double kernelDistance = 0;
+	double kernelDistance = 500;
 
 	@Inject
-	public ParkingObserver(Network network, KernelFunction kernelFunction, PenaltyFunction penaltyFunction, EventsManager eventsManager) {
+	public ParkingObserver(Network network, KernelFunction kernelFunction, PenaltyFunction penaltyFunction, EventsManager eventsManager,
+						   ParkingCapacityInitializer parkingCapacityInitializer, ActivityEstimator activityEstimator, LegEstimator legEstimator) {
 		this.indexByLinkId = new HashMap<>(network.getLinks().size());
 		this.network = network;
 		this.kernelFunction = kernelFunction;
 		this.penaltyFunction = penaltyFunction;
 		this.eventsManager = eventsManager;
-		initCapacity(network);
+		this.activityEstimator = activityEstimator;
+		this.legEstimator = legEstimator;
+
+		initCapacity(network, parkingCapacityInitializer);
 	}
 
-	private void initCapacity(Network network) {
+	private void initCapacity(Network network, ParkingCapacityInitializer parkingCapacityInitializer) {
 		int counter = 0;
 		for (Id<Link> id : network.getLinks().keySet()) {
 			indexByLinkId.put(id, counter++);
@@ -58,12 +64,16 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 
 		int linkCount = network.getLinks().size();
 		capacity = new int[linkCount];
-		for (Link link : network.getLinks().values()) {
-			int onStreet = (int) link.getAttributes().getAttribute(LINK_ON_STREET_SPOTS);
-			int offStreet = (int) link.getAttributes().getAttribute(LINK_OFF_STREET_SPOTS);
-			capacity[indexByLinkId.get(link.getId())] = onStreet + offStreet;
-		}
 		parkingCount = new int[linkCount];
+
+		Map<Id<Link>, ParkingCapacityInitializer.InitialParkingCapacity> initialize = parkingCapacityInitializer.initialize();
+		for (Link link : network.getLinks().values()) {
+			ParkingCapacityInitializer.InitialParkingCapacity initialParkingCapacity = initialize.get(link.getId());
+			int index = indexByLinkId.get(link.getId());
+
+			capacity[index] = initialParkingCapacity.capacity();
+			parkingCount[index] = initialParkingCapacity.initial();
+		}
 	}
 
 	@Override
@@ -114,6 +124,7 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 
 	private void applyPenalty(double time, Id<Person> personId, double penaltyInSec, Id<Link> linkId) {
 		//TODO convert penalty to money
+
 		double score = 0.0;
 
 		PersonScoreEvent personScoreEvent = new PersonScoreEvent(time, personId, score, "parking");

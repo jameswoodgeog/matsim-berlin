@@ -23,7 +23,7 @@ public class BellochePenaltyFunction implements PenaltyFunction {
 		Tuple<Double, Double> weightedOccK = getWeightedOccK(parkingCount);
 
 		if (weightedOccK.getSecond() == 0) {
-			log.warn("The total capacity of parking spots is 0. As fallback, we assume that the occupancy rate is 1, so each link is full.");
+			// The total capacity of parking spots is 0. As fallback, we assume that the occupancy rate is 1, so each link is full.
 			return alpha * Math.exp(-beta);
 		}
 

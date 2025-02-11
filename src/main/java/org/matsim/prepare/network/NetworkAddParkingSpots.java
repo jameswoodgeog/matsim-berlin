@@ -23,7 +23,7 @@ public class NetworkAddParkingSpots implements MATSimAppCommand {
 	@CommandLine.Option(names = "--network", description = "Path to input network", required = true)
 	private Path network;
 
-	@CommandLine.Option(names = "--parking-sports", description = "Path to parking spots csv", required = true)
+	@CommandLine.Option(names = "--parking-spots", description = "Path to parking spots csv", required = true)
 	private Path parkingSpots;
 
 	@CommandLine.Option(names = "--output", description = "Desired output path", required = true)
@@ -53,13 +53,20 @@ public class NetworkAddParkingSpots implements MATSimAppCommand {
 		try (BufferedReader reader = Files.newBufferedReader(parkingSpots)) {
 			CSVParser csvParser = new CSVParser(reader, CSVFormat.DEFAULT.withHeader());
 			for (CSVRecord csvRecord : csvParser) {
-				String linkId = csvRecord.get("linkId");
-				double onStreet = Double.parseDouble(csvRecord.get("onStreet"));
-				double offStreet = Double.parseDouble(csvRecord.get("offStreet"));
+				String linkId = csvRecord.get("id");
+				double onStreet = catchNa(csvRecord.get("onstreet_spots"));
+				double offStreet = catchNa(csvRecord.get("offstreet_spots"));
 				parkingSpotEntries.add(new ParkingSpotEntry(linkId, onStreet, offStreet));
 			}
 		}
 		return parkingSpotEntries;
+	}
+
+	private Double catchNa(String string) {
+		if (string.equals("NA")) {
+			return 0.0;
+		}
+		return Double.parseDouble(string);
 	}
 
 	private record ParkingSpotEntry(String linkId, double onStreet, double offStreet) {
