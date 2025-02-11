@@ -1,9 +1,8 @@
 package org.matsim.run;
 
 import org.matsim.core.config.Config;
-import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
-import org.matsim.run.scoring.parking.*;
+import org.matsim.run.scoring.parking.ParkingModule;
 
 
 /**
@@ -26,14 +25,6 @@ public class OpenBerlinParkingScenario extends OpenBerlinScenario {
 	@Override
 	protected void prepareControler(Controler controler) {
 		super.prepareControler(controler);
-
-		controler.addOverridingModule(new AbstractModule() {
-			@Override
-			public void install() {
-				bind(KernelFunction.class).to(ConstantKernelFunction.class);
-				bind(PenaltyFunction.class).toInstance(new BellochePenaltyFunction(0.4, -6));
-				addEventHandlerBinding().to(ParkingObserver.class);
-			}
-		});
+		controler.addOverridingModule(new ParkingModule());
 	}
 }

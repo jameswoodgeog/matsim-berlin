@@ -3,35 +3,41 @@ package org.matsim.run.scoring.parking;
 import com.google.inject.Inject;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.events.PersonScoreEvent;
-import org.matsim.api.core.v01.events.TransitDriverStartsEvent;
 import org.matsim.api.core.v01.events.VehicleEntersTrafficEvent;
 import org.matsim.api.core.v01.events.VehicleLeavesTrafficEvent;
-import org.matsim.api.core.v01.events.handler.TransitDriverStartsEventHandler;
-import org.matsim.api.core.v01.events.handler.VehicleEntersTrafficEventHandler;
-import org.matsim.api.core.v01.events.handler.VehicleLeavesTrafficEventHandler;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.core.controler.events.AfterMobsimEvent;
+import org.matsim.core.controler.listener.AfterMobsimListener;
 import org.matsim.modechoice.estimators.ActivityEstimator;
 import org.matsim.modechoice.estimators.LegEstimator;
 import org.matsim.vehicles.Vehicle;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class ParkingObserver implements VehicleEntersTrafficEventHandler, VehicleLeavesTrafficEventHandler, TransitDriverStartsEventHandler {
+public class ParkingObserver implements AfterMobsimListener {
 	static final String LINK_ON_STREET_SPOTS = "onstreet_spots";
 	static final String LINK_OFF_STREET_SPOTS = "offstreet_spots";
 
+	@Inject
 	Network network;
+	@Inject
 	KernelFunction kernelFunction;
+	@Inject
 	PenaltyFunction penaltyFunction;
+	@Inject
 	EventsManager eventsManager;
+	@Inject
 	ActivityEstimator activityEstimator;
+	@Inject
 	LegEstimator legEstimator;
+
+	@Inject
+	ParkingCapacityInitializer parkingCapacityInitializer;
+	@Inject
+	ParkingEventsHandler parkingEventsHandler;
 
 	//state
 	Set<Id<Vehicle>> knownPtVehicles = new HashSet<>();
@@ -42,56 +48,43 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 	//TODO
 	double kernelDistance = 500;
 
-	@Inject
-	public ParkingObserver(Network network, KernelFunction kernelFunction, PenaltyFunction penaltyFunction, EventsManager eventsManager,
-						   ParkingCapacityInitializer parkingCapacityInitializer, ActivityEstimator activityEstimator, LegEstimator legEstimator) {
-		this.indexByLinkId = new HashMap<>(network.getLinks().size());
-		this.network = network;
-		this.kernelFunction = kernelFunction;
-		this.penaltyFunction = penaltyFunction;
-		this.eventsManager = eventsManager;
-		this.activityEstimator = activityEstimator;
-		this.legEstimator = legEstimator;
-
-		initCapacity(network, parkingCapacityInitializer);
+	@Override
+	public void notifyAfterMobsim(AfterMobsimEvent event) {
+		parkingEventsHandler.lock();
+		initializeParking();
+		run();
 	}
 
-	private void initCapacity(Network network, ParkingCapacityInitializer parkingCapacityInitializer) {
-		int counter = 0;
-		for (Id<Link> id : network.getLinks().keySet()) {
-			indexByLinkId.put(id, counter++);
+	private void run() {
+		List<VehicleLeavesTrafficEvent> vehicleLeavesTrafficEvents = parkingEventsHandler.getVehicleLeavesTrafficEvents();
+		List<VehicleEntersTrafficEvent> vehicleEntersTrafficEvents = parkingEventsHandler.getVehicleEntersTrafficEvents();
+
+		double maxEntersTime = vehicleEntersTrafficEvents.stream().mapToDouble(VehicleEntersTrafficEvent::getTime).max().orElse(0.0);
+		double maxLeavesTime = vehicleLeavesTrafficEvents.stream().mapToDouble(VehicleLeavesTrafficEvent::getTime).max().orElse(0.0);
+
+		int indexEnterEvents = 0;
+		int indexLeaveEvents = 0;
+
+		for (int i = 0; i <= Math.max(maxLeavesTime, maxEntersTime); i++) {
+			while (indexEnterEvents < vehicleEntersTrafficEvents.size() && vehicleEntersTrafficEvents.get(indexEnterEvents).getTime() == i) {
+				handleEvent(vehicleEntersTrafficEvents.get(indexEnterEvents++));
+			}
+
+			while (indexLeaveEvents < vehicleLeavesTrafficEvents.size() && vehicleLeavesTrafficEvents.get(indexLeaveEvents).getTime() == i) {
+				handleEvent(vehicleLeavesTrafficEvents.get(indexLeaveEvents++));
+			}
 		}
 
-		int linkCount = network.getLinks().size();
-		capacity = new int[linkCount];
-		parkingCount = new int[linkCount];
-
-		Map<Id<Link>, ParkingCapacityInitializer.InitialParkingCapacity> initialize = parkingCapacityInitializer.initialize();
-		for (Link link : network.getLinks().values()) {
-			ParkingCapacityInitializer.InitialParkingCapacity initialParkingCapacity = initialize.get(link.getId());
-			int index = indexByLinkId.get(link.getId());
-
-			capacity[index] = initialParkingCapacity.capacity();
-			parkingCount[index] = initialParkingCapacity.initial();
-		}
 	}
 
-	@Override
-	public void handleEvent(TransitDriverStartsEvent event) {
-		knownPtVehicles.add(event.getVehicleId());
-	}
-
-	@Override
-	public void handleEvent(VehicleEntersTrafficEvent event) {
+	private void handleEvent(VehicleEntersTrafficEvent event) {
 		if (knownPtVehicles.contains(event.getVehicleId())) {
 			return;
 		}
-
 		unparkVehicle(event.getLinkId());
 	}
 
-	@Override
-	public void handleEvent(VehicleLeavesTrafficEvent event) {
+	private void handleEvent(VehicleLeavesTrafficEvent event) {
 		if (knownPtVehicles.contains(event.getVehicleId())) {
 			return;
 		}
@@ -129,5 +122,29 @@ public class ParkingObserver implements VehicleEntersTrafficEventHandler, Vehicl
 
 		PersonScoreEvent personScoreEvent = new PersonScoreEvent(time, personId, score, "parking");
 		eventsManager.processEvent(personScoreEvent);
+	}
+
+	private void initializeParking() {
+		int counter = 0;
+		indexByLinkId = new HashMap<>(network.getLinks().size());
+
+		for (Id<Link> id : network.getLinks().keySet()) {
+			indexByLinkId.put(id, counter++);
+		}
+
+		int linkCount = network.getLinks().size();
+		capacity = new int[linkCount];
+		parkingCount = new int[linkCount];
+
+		Map<Id<Link>, ParkingCapacityInitializer.ParkingInitialCapacity> initialize =
+			parkingCapacityInitializer.initialize(parkingEventsHandler.getVehicleEntersTrafficEvents(), parkingEventsHandler.getVehicleLeavesTrafficEvents());
+
+		for (Link link : network.getLinks().values()) {
+			ParkingCapacityInitializer.ParkingInitialCapacity parkingInitialCapacity = initialize.get(link.getId());
+			int index = indexByLinkId.get(link.getId());
+
+			capacity[index] = parkingInitialCapacity.capacity();
+			parkingCount[index] = parkingInitialCapacity.initial();
+		}
 	}
 }

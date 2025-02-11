@@ -19,11 +19,8 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.Controller;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
+import org.matsim.core.controler.events.AfterMobsimEvent;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.modechoice.estimators.ActivityEstimator;
-import org.matsim.modechoice.estimators.DefaultActivityEstimator;
-import org.matsim.modechoice.estimators.DefaultLegScoreEstimator;
-import org.matsim.modechoice.estimators.LegEstimator;
 import org.matsim.testcases.MatsimTestUtils;
 
 import java.util.List;
@@ -51,6 +48,8 @@ class ParkingObserverTest {
 		eventsManager.processEvent(new VehicleLeavesTrafficEvent(0, Id.createPersonId("p1"), Id.createLinkId("55"), Id.createVehicleId("v1"), "car", 0));
 		// Person p2 parks at link 55.
 		eventsManager.processEvent(new VehicleLeavesTrafficEvent(10, Id.createPersonId("p2"), Id.createLinkId("55"), Id.createVehicleId("v2"), "car", 0));
+
+		runAndCheckEvents();
 	}
 
 	@Test
@@ -67,6 +66,8 @@ class ParkingObserverTest {
 		eventsManager.processEvent(new VehicleEntersTrafficEvent(5, Id.createPersonId("p1"), Id.createLinkId("55"), Id.createVehicleId("v1"), "car", 0));
 		// Person p2 parks at link 55.
 		eventsManager.processEvent(new VehicleLeavesTrafficEvent(10, Id.createPersonId("p2"), Id.createLinkId("55"), Id.createVehicleId("v2"), "car", 0));
+
+		runAndCheckEvents();
 	}
 
 	@Test
@@ -81,6 +82,13 @@ class ParkingObserverTest {
 		eventsManager.processEvent(new VehicleLeavesTrafficEvent(0, Id.createPersonId("p1"), Id.createLinkId("55"), Id.createVehicleId("v1"), "car", 0));
 		// Person p2 parks at link 55.
 		eventsManager.processEvent(new VehicleLeavesTrafficEvent(10, Id.createPersonId("p2"), Id.createLinkId("55"), Id.createVehicleId("v2"), "car", 0));
+
+		runAndCheckEvents();
+	}
+
+	private void runAndCheckEvents() {
+		injector.getInstance(ParkingObserver.class).notifyAfterMobsim(new AfterMobsimEvent(null, 0, false));
+		injector.getInstance(TestHandler.class).checkAllEventsProcessed();
 	}
 
 	EventsManager prepareParkingObserver(List<PersonScoreEvent> expectedScoreEvents, boolean offStreet) {
@@ -93,22 +101,13 @@ class ParkingObserverTest {
 		prepareNetwork(scenario.getNetwork(), offStreet);
 
 		Controller controller = new Controler(scenario);
+		controller.addOverridingModule(new ParkingModule());
 		controller.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {
-				// bind classes from informed mode choice explicitly
-				bind(ActivityEstimator.class).to(DefaultActivityEstimator.class);
-				bind(LegEstimator.class).to(DefaultLegScoreEstimator.class);
-
-				// bind parking classes
-				bind(KernelFunction.class).to(ConstantKernelFunction.class);
-				bind(PenaltyFunction.class).toInstance(new BellochePenaltyFunction(0.4, -6));
-				bind(ParkingCapacityInitializer.class).to(ZeroParkingCapacityInitializer.class);
-				bind(ParkingObserver.class);
-				addEventHandlerBinding().to(ParkingObserver.class);
-
 				// bind test event handler
-				addEventHandlerBinding().toInstance(new TestHandler(expectedScoreEvents));
+				bind(TestHandler.class).toInstance(new TestHandler(expectedScoreEvents));
+				addEventHandlerBinding().to(TestHandler.class);
 			}
 		});
 
@@ -138,6 +137,10 @@ class ParkingObserverTest {
 			PersonScoreEvent expectedEvent = expectedEvents.get(eventCounter);
 			Assertions.assertEquals(expectedEvent, personScoreEvent);
 			eventCounter++;
+		}
+
+		public void checkAllEventsProcessed() {
+			Assertions.assertEquals(expectedEvents.size(), eventCounter);
 		}
 	}
 }

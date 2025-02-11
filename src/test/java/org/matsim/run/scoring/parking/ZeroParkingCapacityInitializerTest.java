@@ -8,6 +8,7 @@ import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.testcases.MatsimTestUtils;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,8 +22,8 @@ class ZeroParkingCapacityInitializerTest {
 		Network network = getNetwork();
 
 		ZeroParkingCapacityInitializer zeroParkingCapacityInitializer = new ZeroParkingCapacityInitializer(network);
-		Map<Id<Link>, ParkingCapacityInitializer.InitialParkingCapacity> initialize = zeroParkingCapacityInitializer.initialize();
-		for (ParkingCapacityInitializer.InitialParkingCapacity value : initialize.values()) {
+		Map<Id<Link>, ParkingCapacityInitializer.ParkingInitialCapacity> initialize = zeroParkingCapacityInitializer.initialize(List.of(), List.of());
+		for (ParkingCapacityInitializer.ParkingInitialCapacity value : initialize.values()) {
 			assertEquals(0, value.initial());
 		}
 	}
