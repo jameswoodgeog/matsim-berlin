@@ -56,3 +56,5 @@ if __name__ == "__main__":
 
     print("Avg speeds. per mode")
     print(aggr)
+
+    print("Mobile persons", result.persons[result.persons.mobile_on_day == True].p_weight.sum() / result.persons.p_weight.sum())
