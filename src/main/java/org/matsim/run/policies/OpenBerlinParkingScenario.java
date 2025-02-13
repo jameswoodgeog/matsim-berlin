@@ -1,7 +1,8 @@
-package org.matsim.run;
+package org.matsim.run.policies;
 
 import org.matsim.core.config.Config;
 import org.matsim.core.controler.Controler;
+import org.matsim.run.OpenBerlinScenario;
 import org.matsim.run.scoring.parking.ParkingModule;
 
 

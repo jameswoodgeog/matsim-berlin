@@ -1,7 +1,6 @@
-package org.matsim.run;
+package org.matsim.run.policies;
 
 import org.geotools.api.feature.simple.SimpleFeature;
-
 import org.geotools.feature.simple.SimpleFeatureImpl;
 import org.locationtech.jts.geom.Geometry;
 import org.matsim.api.core.v01.Scenario;
@@ -15,6 +14,7 @@ import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.gis.ShapeFileReader;
+import org.matsim.run.OpenBerlinScenario;
 import picocli.CommandLine;
 
 import java.util.ArrayList;
@@ -29,6 +29,7 @@ public class OpenBerlinCarfreeScenario extends OpenBerlinScenario {
 		defaultValue = "input/v6.3/hundekopf-shp/hundekopf-carBanArea-25832.shp",
 		description = "Path to (single geom) shape file depicting the area where private cars are banned from. If you adjust, think about adjusting the drt area+stops file, as well!")
 	private static String SHAPE_FILE;
+
 	public OpenBerlinCarfreeScenario() {
 		super();
 	}
@@ -36,6 +37,7 @@ public class OpenBerlinCarfreeScenario extends OpenBerlinScenario {
 	public static void main(String[] args) {
 		MATSimApplication.run(OpenBerlinCarfreeScenario.class, args);
 	}
+
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 		super.prepareScenario(scenario);
@@ -51,7 +53,7 @@ public class OpenBerlinCarfreeScenario extends OpenBerlinScenario {
 				allowedModes.remove(TransportMode.car);
 				link.setAllowedModes(allowedModes);
 				link.getAttributes().putAttribute("ring", true);
-			}else {
+			} else {
 				link.getAttributes().putAttribute("ring", false);
 			}
 		}
