@@ -12,8 +12,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.matsim.run.scoring.parking.ParkingObserver.LINK_OFF_STREET_SPOTS;
-import static org.matsim.run.scoring.parking.ParkingObserver.LINK_ON_STREET_SPOTS;
+import static org.matsim.run.scoring.parking.ParkingTimeEstimator.LINK_OFF_STREET_SPOTS;
+import static org.matsim.run.scoring.parking.ParkingTimeEstimator.LINK_ON_STREET_SPOTS;
 
 public class ZeroParkingCapacityInitializer implements ParkingCapacityInitializer {
 	private Network network;

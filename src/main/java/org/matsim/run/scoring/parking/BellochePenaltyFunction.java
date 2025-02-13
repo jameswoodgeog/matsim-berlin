@@ -8,7 +8,7 @@ import org.matsim.core.utils.collections.Tuple;
 
 import java.util.Map;
 
-public class BellochePenaltyFunction implements PenaltyFunction {
+public class BellochePenaltyFunction implements ParkingSearchTimeFunction {
 	private static final Logger log = LogManager.getLogger(BellochePenaltyFunction.class);
 	private final double alpha;
 	private final double beta;
@@ -19,7 +19,7 @@ public class BellochePenaltyFunction implements PenaltyFunction {
 	}
 
 	@Override
-	public double calculatePenalty(Map<Id<Link>, ParkingCount> parkingCount) {
+	public double calculateParkingSearchTime(Map<Id<Link>, ParkingCount> parkingCount) {
 		Tuple<Double, Double> weightedOccK = getWeightedOccK(parkingCount);
 
 		if (weightedOccK.getSecond() == 0) {

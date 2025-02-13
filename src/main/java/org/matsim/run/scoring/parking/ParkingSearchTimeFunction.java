@@ -5,6 +5,6 @@ import org.matsim.api.core.v01.network.Link;
 
 import java.util.Map;
 
-public interface PenaltyFunction {
-	double calculatePenalty(Map<Id<Link>, ParkingCount> parkingCount);
+public interface ParkingSearchTimeFunction {
+	double calculateParkingSearchTime(Map<Id<Link>, ParkingCount> parkingCount);
 }

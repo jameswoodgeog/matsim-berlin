@@ -16,12 +16,12 @@ public class ParkingModule extends AbstractModule {
 
 		// bind parking classes
 		bind(KernelFunction.class).to(ConstantKernelFunction.class);
-		bind(PenaltyFunction.class).toInstance(new BellochePenaltyFunction(0.4, -6));
+		bind(ParkingSearchTimeFunction.class).toInstance(new BellochePenaltyFunction(0.4, -6));
 		bind(ParkingCapacityInitializer.class).to(ZeroParkingCapacityInitializer.class);
 
-		bind(ParkingObserver.class).in(Singleton.class);
+		bind(ParkingTimeEstimator.class).in(Singleton.class);
 		bind(ParkingEventsHandler.class).in(Singleton.class);
 		addEventHandlerBinding().to(ParkingEventsHandler.class);
-		addControlerListenerBinding().to(ParkingObserver.class);
+		addControlerListenerBinding().to(ParkingTimeEstimator.class);
 	}
 }

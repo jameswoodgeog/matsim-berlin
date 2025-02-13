@@ -11,8 +11,8 @@ import org.matsim.api.core.v01.population.Person;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.matsim.run.scoring.parking.ParkingObserver.LINK_OFF_STREET_SPOTS;
-import static org.matsim.run.scoring.parking.ParkingObserver.LINK_ON_STREET_SPOTS;
+import static org.matsim.run.scoring.parking.ParkingTimeEstimator.LINK_OFF_STREET_SPOTS;
+import static org.matsim.run.scoring.parking.ParkingTimeEstimator.LINK_ON_STREET_SPOTS;
 
 public class EventBasedParkingCapacityInitializer implements ParkingCapacityInitializer {
 	@Inject

@@ -111,8 +111,8 @@ class EventBasedParkingCapacityInitializerTest {
 		// Chessboard network has 10x10 nodes, starting from (0,0) to (9000,9000). The distance between two adjacent nodes is 1000 on the x- or y-axis.
 		Network network = NetworkUtils.readNetwork(testUtils.getPackageInputDirectory() + "./chessboard_network.xml");
 		network.getLinks().values().forEach(l -> {
-			l.getAttributes().putAttribute(ParkingObserver.LINK_ON_STREET_SPOTS, Integer.valueOf(l.getId().toString()));
-			l.getAttributes().putAttribute(ParkingObserver.LINK_OFF_STREET_SPOTS, 0);
+			l.getAttributes().putAttribute(ParkingTimeEstimator.LINK_ON_STREET_SPOTS, Integer.valueOf(l.getId().toString()));
+			l.getAttributes().putAttribute(ParkingTimeEstimator.LINK_OFF_STREET_SPOTS, 0);
 		});
 
 		return network;

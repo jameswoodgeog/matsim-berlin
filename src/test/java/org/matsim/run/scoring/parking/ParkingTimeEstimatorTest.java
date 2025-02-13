@@ -25,7 +25,7 @@ import org.matsim.testcases.MatsimTestUtils;
 
 import java.util.List;
 
-class ParkingObserverTest {
+class ParkingTimeEstimatorTest {
 	@RegisterExtension
 	MatsimTestUtils testUtils = new MatsimTestUtils();
 
@@ -87,7 +87,7 @@ class ParkingObserverTest {
 	}
 
 	private void runAndCheckEvents() {
-		injector.getInstance(ParkingObserver.class).notifyAfterMobsim(new AfterMobsimEvent(null, 0, false));
+		injector.getInstance(ParkingTimeEstimator.class).notifyAfterMobsim(new AfterMobsimEvent(null, 0, false));
 		injector.getInstance(TestHandler.class).checkAllEventsProcessed();
 	}
 
@@ -117,9 +117,9 @@ class ParkingObserverTest {
 
 	private void prepareNetwork(Network network, boolean offStreet) {
 		network.getLinks().values().forEach(l -> {
-			l.getAttributes().putAttribute(ParkingObserver.LINK_ON_STREET_SPOTS, 1);
+			l.getAttributes().putAttribute(ParkingTimeEstimator.LINK_ON_STREET_SPOTS, 1);
 			if (offStreet) {
-				l.getAttributes().putAttribute(ParkingObserver.LINK_OFF_STREET_SPOTS, 1);
+				l.getAttributes().putAttribute(ParkingTimeEstimator.LINK_OFF_STREET_SPOTS, 1);
 			}
 		});
 	}

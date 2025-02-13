@@ -17,25 +17,31 @@ import org.matsim.vehicles.Vehicle;
 
 import java.util.*;
 
-public class ParkingObserver implements AfterMobsimListener {
+public class ParkingTimeEstimator implements AfterMobsimListener {
 	static final String LINK_ON_STREET_SPOTS = "onstreet_spots";
 	static final String LINK_OFF_STREET_SPOTS = "offstreet_spots";
 
 	@Inject
 	Network network;
+
 	@Inject
 	KernelFunction kernelFunction;
+
 	@Inject
-	PenaltyFunction penaltyFunction;
+	ParkingSearchTimeFunction parkingSearchTimeFunction;
+
 	@Inject
 	EventsManager eventsManager;
+
 	@Inject
 	ActivityEstimator activityEstimator;
+
 	@Inject
 	LegEstimator legEstimator;
 
 	@Inject
 	ParkingCapacityInitializer parkingCapacityInitializer;
+
 	@Inject
 	ParkingEventsHandler parkingEventsHandler;
 
@@ -53,6 +59,30 @@ public class ParkingObserver implements AfterMobsimListener {
 		parkingEventsHandler.lock();
 		initializeParking();
 		run();
+	}
+
+	private void initializeParking() {
+		int counter = 0;
+		indexByLinkId = new HashMap<>(network.getLinks().size());
+
+		for (Id<Link> id : network.getLinks().keySet()) {
+			indexByLinkId.put(id, counter++);
+		}
+
+		int linkCount = network.getLinks().size();
+		capacity = new int[linkCount];
+		parkingCount = new int[linkCount];
+
+		Map<Id<Link>, ParkingCapacityInitializer.ParkingInitialCapacity> initialize =
+			parkingCapacityInitializer.initialize(parkingEventsHandler.getVehicleEntersTrafficEvents(), parkingEventsHandler.getVehicleLeavesTrafficEvents());
+
+		for (Link link : network.getLinks().values()) {
+			ParkingCapacityInitializer.ParkingInitialCapacity parkingInitialCapacity = initialize.get(link.getId());
+			int index = indexByLinkId.get(link.getId());
+
+			capacity[index] = parkingInitialCapacity.capacity();
+			parkingCount[index] = parkingInitialCapacity.initial();
+		}
 	}
 
 	private void run() {
@@ -92,7 +122,7 @@ public class ParkingObserver implements AfterMobsimListener {
 		Map<Id<Link>, Double> weightedLinks = kernelFunction.calculateKernel(network.getLinks().get(event.getLinkId()), kernelDistance);
 		Map<Id<Link>, ParkingCount> parkingCounts = applyWeights(weightedLinks);
 
-		double penalty = penaltyFunction.calculatePenalty(parkingCounts);
+		double penalty = parkingSearchTimeFunction.calculateParkingSearchTime(parkingCounts);
 		applyPenalty(event.getTime(), event.getPersonId(), penalty, event.getLinkId());
 
 		parkVehicle(event.getLinkId());
@@ -115,36 +145,12 @@ public class ParkingObserver implements AfterMobsimListener {
 		return result;
 	}
 
-	private void applyPenalty(double time, Id<Person> personId, double penaltyInSec, Id<Link> linkId) {
+	private void applyPenalty(double time, Id<Person> personId, double parkingSearchTime, Id<Link> linkId) {
 		//TODO convert penalty to money
 
 		double score = 0.0;
 
 		PersonScoreEvent personScoreEvent = new PersonScoreEvent(time, personId, score, "parking");
 		eventsManager.processEvent(personScoreEvent);
-	}
-
-	private void initializeParking() {
-		int counter = 0;
-		indexByLinkId = new HashMap<>(network.getLinks().size());
-
-		for (Id<Link> id : network.getLinks().keySet()) {
-			indexByLinkId.put(id, counter++);
-		}
-
-		int linkCount = network.getLinks().size();
-		capacity = new int[linkCount];
-		parkingCount = new int[linkCount];
-
-		Map<Id<Link>, ParkingCapacityInitializer.ParkingInitialCapacity> initialize =
-			parkingCapacityInitializer.initialize(parkingEventsHandler.getVehicleEntersTrafficEvents(), parkingEventsHandler.getVehicleLeavesTrafficEvents());
-
-		for (Link link : network.getLinks().values()) {
-			ParkingCapacityInitializer.ParkingInitialCapacity parkingInitialCapacity = initialize.get(link.getId());
-			int index = indexByLinkId.get(link.getId());
-
-			capacity[index] = parkingInitialCapacity.capacity();
-			parkingCount[index] = parkingInitialCapacity.initial();
-		}
 	}
 }
