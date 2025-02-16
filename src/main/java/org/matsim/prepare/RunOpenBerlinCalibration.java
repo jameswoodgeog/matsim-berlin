@@ -58,6 +58,7 @@ import org.matsim.prepare.download.DownloadCommuterStatistic;
 import org.matsim.prepare.drt.CreateDrtVehicles;
 import org.matsim.prepare.facilities.CreateMATSimFacilities;
 import org.matsim.prepare.facilities.ExtractFacilityGeoPkg;
+import org.matsim.prepare.network.LinkCapacityFromMeasurements;
 import org.matsim.prepare.opt.ExtractPlanIndexFromType;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
@@ -92,7 +93,7 @@ import java.util.stream.Collectors;
 	CleanNetwork.class, CreateMATSimFacilities.class, InitLocationChoice.class, CreateScenarioCutOut.class,
 	CreateCountsFromGeoPortalBerlin.class, CreateCountsFromVMZOld.class, CreateCountsFromVMZ.class, ReprojectNetwork.class, RunActivitySampling.class,
 	MergePlans.class, SplitActivityTypesDuration.class, CleanPopulation.class, CleanAttributes.class,
-	GenerateSmallScaleCommercialTrafficDemand.class, CreateDataDistributionOfStructureData.class,
+	GenerateSmallScaleCommercialTrafficDemand.class, CreateDataDistributionOfStructureData.class, LinkCapacityFromMeasurements.class,
 	RunCountOptimization.class, SelectPlansFromIndex.class, ExtractPlanIndexFromType.class, AssignReferencePopulation.class,
 	ExtractRelevantFreightTrips.class, CheckCarAvailability.class, FixSubtourModes.class, ComputeTripChoices.class, ComputePlanChoices.class,
 	ApplyNetworkParams.class, SetCarAvailabilityByAge.class, CreateDrtVehicles.class, EndlessCircleLineScheduleModifier.class

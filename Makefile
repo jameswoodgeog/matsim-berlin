@@ -119,7 +119,7 @@ $p/berlin-$V-network.xml.gz: input/sumo.net.xml
 	  --decrease-only
 
 
-$p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz
+$p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz $p/berlin-$V-counts-vmz.xml.gz
 	$(sc) prepare transit-from-gtfs --network $< --output=$p\
 	 --name berlin-$V --date "2024-11-19" --target-crs $(CRS) \
 	 $(germany)/gtfs/complete-pt-2024-10-27.zip\
@@ -137,6 +137,12 @@ $p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz
  	  --transit-vehicles $p/berlin-$V-transitVehicles.xml.gz\
  	  --output-transit-schedule $p/berlin-$V-transitSchedule.xml.gz\
 	  --output-transit-vehicles $p/berlin-$V-transitVehicles.xml.gz
+
+  # Very last step depends on counts and the network to set better capacities
+	$(sc) prepare link-capacity-from-measurements\
+	 	--network $@\
+	 	--counts $(word 2,$^)\
+	 	--output $@
 
 $p/berlin-$V-counts-vmz.xml.gz: $p/berlin-$V-network.xml.gz
 	$(sc) prepare counts-from-vmz\

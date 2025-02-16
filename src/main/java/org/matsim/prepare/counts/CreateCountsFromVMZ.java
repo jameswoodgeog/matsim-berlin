@@ -27,6 +27,7 @@ import org.matsim.counts.Counts;
 import org.matsim.counts.CountsWriter;
 import org.matsim.counts.Measurable;
 import org.matsim.counts.MeasurementLocation;
+import org.matsim.prepare.network.LinkCapacityFromMeasurements;
 import picocli.CommandLine;
 
 import java.io.IOException;
@@ -36,8 +37,8 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 @CommandLine.Command(
-		name = "counts-from-vmz",
-		description = "Create counts from the now deprecated (VMZ) data"
+	name = "counts-from-vmz",
+	description = "Create counts from the now deprecated (VMZ) data"
 )
 public class CreateCountsFromVMZ implements MATSimAppCommand {
 
@@ -45,13 +46,10 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 
 	@CommandLine.Option(names = "--excel", description = "Path to excel file containing the counts")
 	private Path excel;
-
 	@CommandLine.Option(names = "--network", description = "Path to network", required = true)
 	private Path network;
-
 	@CommandLine.Option(names = "--network-geometries", description = "path to *linkGeometries.csv")
 	private Path networkGeometries;
-
 	@CommandLine.Option(names = "--output", description = "Base path for the output")
 	private String output;
 
@@ -68,22 +66,59 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		new CreateCountsFromVMZ().execute(args);
 	}
 
+	private static String replaceUmlaute(String str) {
+		str = str.replace("ü", "ue")
+			.replace("ö", "oe")
+			.replace("ä", "ae")
+			.replace("ß", "ss")
+			.replaceAll("Ü(?=[a-zäöüß ])", "Ue")
+			.replaceAll("Ö(?=[a-zäöüß ])", "Oe")
+			.replaceAll("Ä(?=[a-zäöüß ])", "Ae")
+			.replaceAll("Ü", "UE")
+			.replaceAll("Ö", "OE")
+			.replaceAll("Ä", "AE");
+		return str;
+	}
+
+	/**
+	 * If the hourly volume and capacity are not plausible, remove the count station.
+	 * Could be due to construction work, wrong data, or wrong matching
+	 */
+	private static void filterUnplausible(Network network, Counts<Link> counts) {
+
+		Set<Id<Link>> toRemove = new HashSet<>();
+		for (Map.Entry<Id<Link>, MeasurementLocation<Link>> kv : counts.getMeasureLocations().entrySet()) {
+
+			double volume = LinkCapacityFromMeasurements.calcMaxHourlyVolume(kv.getValue(), Map.of(TransportMode.car, 1.0, TransportMode.truck, 3.5));
+
+			Link link = network.getLinks().get(kv.getKey());
+			double capacity = link.getCapacity();
+
+			if ( (volume < capacity * 0.2 && volume < 700) || (volume < capacity * 0.15 && volume < 2000)) {
+				log.warn("Removing count station {} ({}) with hourly volume {} and capacity {}", kv.getValue().getDisplayName(), kv.getKey(), volume, capacity);
+				toRemove.add(kv.getKey());
+			}
+
+		}
+
+		if (!toRemove.isEmpty()) {
+			log.warn("Removed {} count stations with unplausible capacities and volumes", toRemove.size());
+			toRemove.forEach(counts.getMeasureLocations()::remove);
+		}
+	}
+
 	@Override
 	public Integer call() throws Exception {
 
 		readExcelFile(excel.toString());
-		matchWithNetwork(network);
-		createCountsFile(output);
+		Network net = matchWithNetwork(network);
+
+		createCountsFile(net, output);
 
 		return 0;
 	}
 
-	private void matchWithNetwork(Path network) throws TransformException, IOException {
-
-		/*
-		 * TODO
-		 *  how to handle count station outside of berlin?
-		 * */
+	private Network matchWithNetwork(Path network) throws TransformException, IOException {
 
 		Network net;
 		{
@@ -109,8 +144,8 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		};
 
 		NetworkIndex<BerlinCount> index = networkGeometries != null ?
-				new NetworkIndex<>(net, NetworkIndex.readGeometriesFromSumo(networkGeometries.toString(), IdentityTransform.create(2)), 100, getter):
-				new NetworkIndex<>(net, 100, getter);
+			new NetworkIndex<>(net, NetworkIndex.readGeometriesFromSumo(networkGeometries.toString(), IdentityTransform.create(2)), 100, getter) :
+			new NetworkIndex<>(net, 100, getter);
 
 		index.addLinkFilter((link, berlinCounts) -> {
 			String orientation = berlinCounts.orientation;
@@ -172,6 +207,7 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		}
 
 		log.info("Could not match {} stations.", unmatched.size());
+		return net;
 	}
 
 	private void readExcelFile(String excel) {
@@ -191,13 +227,11 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		extractFreightShare(wb.getSheet("LKW-Anteile"));
 	}
 
-	private void createCountsFile(String outputFile) {
+	private void createCountsFile(Network network, String outputFile) {
 		log.info("Create count files.");
 		Counts<Link> counts = new Counts<>();
 		counts.setYear(2018);
 		counts.setDescription("data from the berliner senate to matsim counts");
-
-		int counter = 0;
 
 		for (BerlinCount station : stations.values()) {
 
@@ -220,16 +254,16 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 					truckVolumes.setAtHour(i, station.freightVolume * freightShareAtHour[i]);
 				}
 			}
-
-			counter++;
 		}
 
-		log.info("Write down {} count stations to file", counter);
+		filterUnplausible(network, counts);
+
+		log.info("Write down {} count stations to file", counts.getMeasureLocations().size());
 		new CountsWriter(counts).write(outputFile);
 
 		log.info("Write down {} unmatched count stations to file", unmatched.size());
 		try (CSVPrinter printer = CSVFormat.Builder.create().setHeader("id", "position", "x", "y").build()
-				.print(Path.of(outputFile + "unmatched_stations.csv"), Charset.defaultCharset())) {
+			.print(Path.of(outputFile + "unmatched_stations.csv"), Charset.defaultCharset())) {
 
 			CoordinateTransformation transformation = crs.getTransformation();
 
@@ -335,30 +369,16 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		}
 	}
 
-	private static String replaceUmlaute(String str) {
-		str = str.replace("ü", "ue")
-				.replace("ö", "oe")
-				.replace("ä", "ae")
-				.replace("ß", "ss")
-				.replaceAll("Ü(?=[a-zäöüß ])", "Ue")
-				.replaceAll("Ö(?=[a-zäöüß ])", "Oe")
-				.replaceAll("Ä(?=[a-zäöüß ])", "Ae")
-				.replaceAll("Ü", "UE")
-				.replaceAll("Ö", "OE")
-				.replaceAll("Ä", "AE");
-		return str;
-	}
-
 	/**
 	 * The BerlinCount object to save the scanned data for further processing.
 	 */
 	private static final class BerlinCount {
 
 		private final int id;
-		private int totalVolume;
-		private int freightVolume;
 		private final double[] carShareAtHour = new double[24];
 		private final double[] freightShareAtHour = new double[24];
+		private int totalVolume;
+		private int freightVolume;
 		private Id<Link> linkId;
 		private String position;
 		private String orientation;
@@ -373,11 +393,11 @@ public class CreateCountsFromVMZ implements MATSimAppCommand {
 		@Override
 		public String toString() {
 			return "BerlinCount{" +
-					"MQ_ID=" + id +
-					", linkid=" + linkId.toString() +
-					", position='" + position + '\'' +
-					", orientation='" + orientation + '\'' +
-					'}';
+				"MQ_ID=" + id +
+				", linkid=" + linkId.toString() +
+				", position='" + position + '\'' +
+				", orientation='" + orientation + '\'' +
+				'}';
 		}
 	}
 
