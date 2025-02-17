@@ -40,7 +40,7 @@ public class LinkCapacityFromMeasurements implements MATSimAppCommand {
 	@CommandLine.Option(names = "--min-capacity", description = "Minimum capacity", defaultValue = "600")
 	private double minCapacity;
 
-	@CommandLine.Option(names = "--pce", description = "Map contained volumes to passenge car equivalents", split = ";", defaultValue = "car=1;truck=3.5")
+	@CommandLine.Option(names = "--pce", description = "Map containing vehicle types to passenger car equivalents", split = ";", defaultValue = "car=1;truck=3.5")
 	private Map<String, Double> pce;
 
 	public static void main(String[] args) {
