@@ -5,6 +5,8 @@ import argparse
 import biogeme.biogeme as bio
 import biogeme.database as db
 import biogeme.models as models
+import numpy as np
+
 from biogeme.expressions import Beta, bioDraws, PanelLikelihoodTrajectory, log, MonteCarlo
 
 from prepare import read_trip_choices, daily_costs, km_costs
@@ -143,3 +145,23 @@ if __name__ == "__main__":
 
     corr_matrix = results.getCorrelationResults()
     print(corr_matrix)
+
+    probs = {f"Prob {ds.modes[i]}": models.logit(U, AV, i + 1) for i in range(len(ds.modes))}
+
+    simulation = bio.BIOGEME(database, probs)
+
+    p = simulation.simulate(results.getBetaValues())
+
+    print("Simulated probabilities base-case")
+
+    print(ds.modes)
+    print(np.average(p, axis=0, weights=df["weight"]))
+
+    # Make bike faster
+    database.data.bike_hours *= 0.9
+
+    simulation = bio.BIOGEME(database, probs)
+    p = simulation.simulate(results.getBetaValues())
+
+    print("Simulated probabilities policy")
+    print(np.average(p, axis=0, weights=df["weight"]))
