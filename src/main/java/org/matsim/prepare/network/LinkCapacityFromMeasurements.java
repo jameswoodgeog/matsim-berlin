@@ -13,9 +13,12 @@ import org.matsim.counts.Measurable;
 import org.matsim.counts.MeasurementLocation;
 import picocli.CommandLine;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @CommandLine.Command(
 	name = "link-capacity-from-measurements",
@@ -39,6 +42,9 @@ public class LinkCapacityFromMeasurements implements MATSimAppCommand {
 
 	@CommandLine.Option(names = "--min-capacity", description = "Minimum capacity", defaultValue = "600")
 	private double minCapacity;
+
+	@CommandLine.Option(names = "--under-estimated", description = "Path to csv with link ids that are under-estimated")
+	private String underEstimatedPath;
 
 	@CommandLine.Option(names = "--pce", description = "Map containing vehicle types to passenger car equivalents", split = ";", defaultValue = "car=1;truck=3.5")
 	private Map<String, Double> pce;
@@ -76,6 +82,15 @@ public class LinkCapacityFromMeasurements implements MATSimAppCommand {
 		Counts<Link> counts = new Counts<>();
 		new MatsimCountsReader(counts).readFile(countsPath);
 
+		Set<String> lower = underEstimatedPath != null ? Files.lines(Path.of(underEstimatedPath)).collect(Collectors.toSet()) : Set.of();
+
+		if (!lower.isEmpty())
+			log.info("Links with increased factor: {}", lower);
+
+		int unchanged = 0;
+		int increased = 0;
+		int decreased = 0;
+
 		for (Map.Entry<Id<Link>, MeasurementLocation<Link>> kv : counts.getMeasureLocations().entrySet()) {
 
 			MeasurementLocation<Link> ms = kv.getValue();
@@ -90,19 +105,27 @@ public class LinkCapacityFromMeasurements implements MATSimAppCommand {
 
 			double capacity = link.getCapacity();
 
-			if (link.getCapacity() > hourlyVolume * factor) {
-				double target = Math.max(minCapacity, hourlyVolume * factor);
+			// Under-estimated links get a higher factor
+			double f = lower.contains(link.getId().toString()) ? factor * factor : factor;
+
+			if (link.getCapacity() > hourlyVolume * f) {
+				double target = Math.max(minCapacity, hourlyVolume * f);
 				log.info("Decreasing capacity of link {} from {} to {}", link.getId(), capacity, target);
 				link.setCapacity(target);
-			} else if (link.getCapacity() < hourlyVolume) {
-				log.info("Increasing capacity of link {} from {} to {}", link.getId(), capacity, hourlyVolume);
-				link.setCapacity(hourlyVolume);
-			} else
+				decreased++;
+			} else if (link.getCapacity() < hourlyVolume * factor) {
+				log.info("Increasing capacity of link {} from {} to {}", link.getId(), capacity, hourlyVolume * factor);
+				link.setCapacity(hourlyVolume * factor);
+				increased++;
+			} else {
 				log.info("Link {} unchanged with cap: {}, vol: {}", link.getId(), capacity, hourlyVolume);
+				unchanged++;
+			}
 		}
 
-		NetworkUtils.writeNetwork(network, output.toString());
+		log.info("Links unchanged: {}, increased: {}, decreased: {}", unchanged, increased, decreased);
 
+		NetworkUtils.writeNetwork(network, output.toString());
 
 		return 0;
 	}

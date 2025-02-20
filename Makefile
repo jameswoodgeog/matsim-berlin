@@ -142,6 +142,7 @@ $p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz $p/berlin-$V-co
 	$(sc) prepare link-capacity-from-measurements\
 	 	--network $@\
 	 	--counts $(word 2,$^)\
+	 	--under-estimated input/counts_underestimated.csv\
 	 	--output $@
 
 $p/berlin-$V-counts-vmz.xml.gz: $p/berlin-$V-network.xml.gz
