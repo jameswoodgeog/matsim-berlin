@@ -15,12 +15,11 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.QSimConfigGroup;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import picocli.CommandLine;
-import scala.util.parsing.combinator.testing.Str;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -134,9 +133,20 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 
-		//List<Map<String, Object>> osmAttributes = annotateNetworkWithOSMAttributes("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/input/berlin-v6.4-network-ft.csv.gz");
+		Map<String, Map<String, Object>> osmAttributes = readCSVToMap("input/v6.4/berlin-v6.4-network-ft.csv");
 
-
+		for (Link link: scenario.getNetwork().getLinks().values()) {
+			Map<String, Object> innerMap = osmAttributes.get(link.getId().toString());
+			if (innerMap != null) {
+				for (Map.Entry<String, Object> innerEntry : innerMap.entrySet()) {
+					String columnName = innerEntry.getKey(); // The column name (e.g., "highway_type")
+					Object columnValue = innerEntry.getValue(); // The value for that column (could be String, Integer, etc.)
+					link.getAttributes().putAttribute(columnName, columnValue);
+					//log.info("Link " + link.getId() + " has attribute " + columnName);
+				}
+			}
+		}
+		NetworkUtils.writeNetwork(scenario.getNetwork(), "networkWithOSMTags.xml.gz");
 
 	}
 
@@ -181,19 +191,17 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 				// Create a map for this row
 				Map<String, Object> linkAttribute = new HashMap<>();
 
-				// Populate the map with key-value pairs, checking if the value is numeric
 				for (int i = 0; i < headers.length; i++) {
-					String value = data[i].trim();  // Trim any extra whitespace
+					String value = (i < data.length) ? data[i] : "";  // Default to empty string if data[i] is out of bounds
+					value = value.trim();  // Trim any extra whitespace
+
 					if (isNumeric(value)) {
-						// If the value is numeric, try to parse it to an Integer or Double
 						try {
 							linkAttribute.put(headers[i], Integer.parseInt(value));
 						} catch (NumberFormatException e) {
-							// If parsing as an integer fails, try parsing as a double
 							linkAttribute.put(headers[i], Double.parseDouble(value));
 						}
 					} else {
-						// If the value is not numeric, store it as a String
 						linkAttribute.put(headers[i], value);
 					}
 				}
@@ -215,6 +223,63 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			}
 		}
 		return osmAttribbutesList;
+	}
+
+	public static Map<String, Map<String, Object>> readCSVToMap(String csvFilePath) {
+		Map<String, Map<String, Object>> map = new HashMap<>();
+
+		try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
+			String line;
+			boolean isFirstLine = true;
+			List<String> headers = null;
+
+			while ((line = br.readLine()) != null) {
+				// Skip the header line
+				if (isFirstLine) {
+					headers = Arrays.asList(line.split(","));
+					isFirstLine = false;
+					continue;
+				}
+
+				// Split the line by commas
+				String[] values = line.split(",");
+
+				// Create a map to store the row data
+				Map<String, Object> rowData = new HashMap<>();
+
+				// Ensure the number of columns matches the header length
+				for (int i = 0; i < headers.size(); i++) {
+					// If there is a value for this column, add it; otherwise, add null
+					if (i < values.length) {
+						String value = values[i].trim();
+						// Check if the value is numeric and store it as Integer or Double
+						if (isNumeric(value)) {
+							try {
+								rowData.put(headers.get(i), Integer.parseInt(value));
+							} catch (NumberFormatException e) {
+								rowData.put(headers.get(i), Double.parseDouble(value));
+							}
+						} else {
+							rowData.put(headers.get(i), value);
+						}
+					} else {
+						// If no value for this column, store null
+						rowData.put(headers.get(i), "undefinded");
+					}
+				}
+
+				// The key is the linkId (first column)
+				String linkId = values[0];
+
+				// Put the linkId and the corresponding row data into the map
+				map.put(linkId, rowData);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return map;
 	}
 
 	// Helper method to determine if a value is numeric
