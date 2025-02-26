@@ -19,10 +19,12 @@ import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import picocli.CommandLine;
+import scala.util.parsing.combinator.testing.Str;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Set;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Extend the {@link OpenBerlinScenario} to simulated bike on the network. <br>
@@ -50,7 +52,6 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 		}
 
 		switch (bicycleHandling) {
-
 			case onNetworkWithStandardMatsim -> {
 				log.info("Simulating with bikes on the network");
 				// add bike to network modes in qsim:
@@ -84,15 +85,11 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 				BicycleConfigGroup bikeConfigGroup = ConfigUtils.addOrGetModule(config, BicycleConfigGroup.class);
 				bikeConfigGroup.setBicycleMode(TransportMode.bike);
 			}
-
 			case bikeTeleportedStandardMatsim -> {
 				log.info("Simulating assuming bikes are teleported, this is the default in the input config");
 			}
-
 			default -> throw new IllegalStateException("Unexpected value: " + bicycleHandling);
 		}
-
-
 		return config;
 	}
 
@@ -137,6 +134,9 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 
+		//List<Map<String, Object>> osmAttributes = annotateNetworkWithOSMAttributes("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/input/berlin-v6.4-network-ft.csv.gz");
+
+
 
 	}
 
@@ -155,4 +155,84 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	@SuppressWarnings("checkstyle:OneTopLevelClass")
 	enum BicycleHandling {onNetworkWithStandardMatsim, onNetworkWithBicycleContrib, bikeTeleportedStandardMatsim}
 
+	private static List<Map<String, Object>> annotateNetworkWithOSMAttributes(String filePath) {
+		BufferedReader reader = null;
+		String line = "";
+
+		List<Map<String, Object>> osmAttribbutesList = null;
+		try {
+			// Create a BufferedReader to read the CSV file
+			reader = new BufferedReader(new FileReader(filePath));
+			osmAttribbutesList = new ArrayList<>();
+
+			// Read the header (first line)
+			String header = reader.readLine();
+			if (header == null) {
+				throw new IOException("CSV file is empty or does not contain a header");
+			}
+
+			// Split header line into column names (keys for the map)
+			String[] headers = header.split(",");
+
+			// Read each line of the CSV file
+			while ((line = reader.readLine()) != null) {
+				String[] data = line.split(",");  // Split the line by commas
+
+				// Create a map for this row
+				Map<String, Object> linkAttribute = new HashMap<>();
+
+				// Populate the map with key-value pairs, checking if the value is numeric
+				for (int i = 0; i < headers.length; i++) {
+					String value = data[i].trim();  // Trim any extra whitespace
+					if (isNumeric(value)) {
+						// If the value is numeric, try to parse it to an Integer or Double
+						try {
+							linkAttribute.put(headers[i], Integer.parseInt(value));
+						} catch (NumberFormatException e) {
+							// If parsing as an integer fails, try parsing as a double
+							linkAttribute.put(headers[i], Double.parseDouble(value));
+						}
+					} else {
+						// If the value is not numeric, store it as a String
+						linkAttribute.put(headers[i], value);
+					}
+				}
+
+				// Add the map to the list of osmAttribbutesList
+				osmAttribbutesList.add(linkAttribute);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (reader != null) {
+					reader.close();
+					// Close the reader after use
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		return osmAttribbutesList;
+	}
+
+	// Helper method to determine if a value is numeric
+	private static boolean isNumeric(String str) {
+		try {
+			// Try parsing the string to an integer or double
+			Integer.parseInt(str);  // Try parsing as an integer
+			return true;  // If no exception is thrown, it's numeric
+		} catch (NumberFormatException e1) {
+			try {
+				Double.parseDouble(str);  // Try parsing as a double
+				return true;
+			} catch (NumberFormatException e2) {
+				return false;  // If both parsing attempts fail, it's not numeric
+			}
+		}
+	}
 }
+
+
+
