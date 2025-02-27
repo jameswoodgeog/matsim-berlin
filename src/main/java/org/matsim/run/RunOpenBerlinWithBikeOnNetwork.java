@@ -20,6 +20,7 @@ import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import picocli.CommandLine;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -44,7 +45,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 		super.prepareConfig(config);
 
 		// no mode choice if we simulate bikes
-		for (ReplanningConfigGroup.StrategySettings strategySettings: config.replanning().getStrategySettings()) {
+		for (ReplanningConfigGroup.StrategySettings strategySettings : config.replanning().getStrategySettings()) {
 			if (strategySettings.getStrategyName().equals(DefaultPlanStrategiesModule.DefaultStrategy.SubtourModeChoice)) {
 				strategySettings.setWeight(0.0);
 			}
@@ -71,7 +72,6 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 
 			case onNetworkWithBicycleContrib -> {
 				// bike is routed on the network per the xml config.
-
 				log.info("Simulating with bikes on the network and bicycle contrib");
 
 				// add bike to network modes in qsim:
@@ -79,10 +79,10 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 				modes.addAll(config.qsim().getMainModes());
 				config.qsim().setMainModes(modes);
 				config.qsim().setLinkDynamics(QSimConfigGroup.LinkDynamics.PassingQ);
-
 				// this activates the bicycleConfigGroup.  But the module still needs to be loaded for the controler.
 				BicycleConfigGroup bikeConfigGroup = ConfigUtils.addOrGetModule(config, BicycleConfigGroup.class);
 				bikeConfigGroup.setBicycleMode(TransportMode.bike);
+
 			}
 			case bikeTeleportedStandardMatsim -> {
 				log.info("Simulating assuming bikes are teleported, this is the default in the input config");
@@ -92,12 +92,11 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 		return config;
 	}
 
-
 	@Override
 	protected void prepareScenario(Scenario scenario) {
 		super.prepareScenario(scenario);
 		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
-			for (Person person: scenario.getPopulation().getPersons().values()) {
+			for (Person person : scenario.getPopulation().getPersons().values()) {
 				PopulationUtils.resetRoutes(person.getSelectedPlan());
 			}
 		}
@@ -116,7 +115,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 		}
 
 		if (bicycleHandling == BicycleHandling.onNetworkWithStandardMatsim || bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
-			for (Link link: scenario.getNetwork().getLinks().values()) {
+			for (Link link : scenario.getNetwork().getLinks().values()) {
 				// if it is a car link bikes can be added
 				if (link.getAllowedModes().contains(TransportMode.car)) {
 					//check OSM link type
@@ -129,13 +128,13 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 					}
 				}
 			}
-			//run network cleaner for
+			//run network cleaner for bike
 			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 
 		Map<String, Map<String, Object>> osmAttributes = readCSVToMap("input/v6.4/berlin-v6.4-network-ft.csv");
 
-		for (Link link: scenario.getNetwork().getLinks().values()) {
+		for (Link link : scenario.getNetwork().getLinks().values()) {
 			Map<String, Object> innerMap = osmAttributes.get(link.getId().toString());
 			if (innerMap != null) {
 				for (Map.Entry<String, Object> innerEntry : innerMap.entrySet()) {
@@ -147,13 +146,11 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			}
 		}
 		NetworkUtils.writeNetwork(scenario.getNetwork(), "networkWithOSMTags.xml.gz");
-
 	}
 
 	@Override
 	protected void prepareControler(Controler controler) {
 		super.prepareControler(controler);
-
 		if (bicycleHandling == BicycleHandling.onNetworkWithBicycleContrib) {
 			controler.addOverridingModule(new BicycleModule());
 		}
