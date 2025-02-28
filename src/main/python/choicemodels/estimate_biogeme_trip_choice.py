@@ -27,7 +27,7 @@ if __name__ == "__main__":
     parser.add_argument("--est-price-perception-pt", help="Estimate price perception", action="store_true")
     parser.add_argument("--est-ride-alpha", help="Estimate ride detour parameter", action="store_true")
     parser.add_argument("--est-bike-effort", help="Estimate parameter for bike effort", action="store_true")
-    parser.add_argument("--est-exp-dist", help="Modes for which to estimate distance elasticity", nargs="+", type=str, default=[])
+    parser.add_argument("--est-dist", metavar="KEY=VALUE", help="Modes for which to estimate distance elasticity", nargs="+", type=str)
     parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor", action="store_true")
 
     parser.add_argument("--no-income", help="Don't consider the income", action="store_true")
@@ -41,11 +41,6 @@ if __name__ == "__main__":
 
     database = db.Database("data/choices", df)
     v = database.variables
-
-    mean_dist = df.groupby("choice").agg(dist=("beelineDist", "mean")) * 1000
-
-    print("Mean trip distance", (df.beelineDist * 1000).mean())
-    print("Mean trip distance by choice", mean_dist)
 
     ASC = {}
     for mode in ds.modes:
@@ -75,8 +70,14 @@ if __name__ == "__main__":
     BETA_RIDE_ALPHA = Beta('BETA_RIDE_ALPHA', 1, 0, 2, ESTIMATE if args.est_ride_alpha else FIXED)
 
     EXP_DIST = {}
-    for mode in args.est_exp_dist:
-        print(f"Estimating distance elasticity for {mode}")
+
+    if args.est_dist is not None:
+        args.est_dist = dict([x.split("=") for x in args.est_dist])
+    else:
+        args.est_dist = {}
+
+    for mode, d in args.est_dist.items():
+        print(f"Estimating distance elasticity for {mode} with distance {d}")
         EXP_DIST[mode] = (Beta(f'BETA_DIST_{mode}', 1, None, None, ESTIMATE), Beta(f'EXP_DIST_{mode}', 1, None, None, ESTIMATE))
 
     BETA_BIKE_EFFORT = Beta('BETA_BIKE_UTIL_H', 0, 0, 10, ESTIMATE if args.est_bike_effort else FIXED)
@@ -97,7 +98,7 @@ if __name__ == "__main__":
 
         if mode in EXP_DIST:
             beta, exp = EXP_DIST[mode]
-            u += beta * ((v[f"{mode}_km"] * 1000) / float(mean_dist.loc[i].dist)) ** exp
+            u += beta * (v[f"{mode}_km"] / float(args.est_dist[mode])) ** exp
 
         U[i] = u
         AV[i] = v[f"{mode}_valid"]
