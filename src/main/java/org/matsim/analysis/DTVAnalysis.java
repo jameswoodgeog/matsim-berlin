@@ -1,9 +1,6 @@
 package org.matsim.analysis;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.Id;
-import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.application.CommandSpec;
@@ -33,8 +30,6 @@ import static tech.tablesaw.aggregate.AggregateFunctions.count;
 )
 public class DTVAnalysis implements MATSimAppCommand {
 
-	private static final Logger log = LogManager.getLogger(DTVAnalysis.class);
-
 	@CommandLine.Mixin
 	private final InputOptions input = InputOptions.ofCommand(DTVAnalysis.class);
 
@@ -51,6 +46,12 @@ public class DTVAnalysis implements MATSimAppCommand {
 		new DTVAnalysis().execute(args);
 	}
 
+	private static double sqv(double simulated, double observed, double scale) {
+		// 1/(1 + np.sqrt(((y_pred-y_true)*(y_pred-y_true))/(scaling_factor*y_true)))
+
+		return 1 / (1 + Math.sqrt(Math.pow(simulated - observed, 2) / (scale * observed)));
+	}
+
 	@Override
 	public Integer call() throws Exception {
 
@@ -65,7 +66,7 @@ public class DTVAnalysis implements MATSimAppCommand {
 
 		//reading events file & create volumes
 		EventsManager eventsManager = EventsUtils.createEventsManager();
-		VolumesAnalyzer volume = new VolumesAnalyzer(3600, 86400, network, true);
+		VolumesAnalyzer volume = new VolumesAnalyzer(3600, 86400, network, false);
 		eventsManager.addHandler(volume);
 		eventsManager.initProcessing();
 		EventsUtils.readEvents(eventsManager, input.getEventsPath());
@@ -112,6 +113,7 @@ public class DTVAnalysis implements MATSimAppCommand {
 			DoubleColumn.create("simulated_traffic_volume"),
 			DoubleColumn.create("abs_error"),
 			DoubleColumn.create("rel_error"),
+			DoubleColumn.create("sqv"),
 			StringColumn.create("quality")
 		);
 
@@ -121,25 +123,27 @@ public class DTVAnalysis implements MATSimAppCommand {
 			String fromLink = row.getString("from_link");
 			String toLink = row.getString("to_link");
 
-			double volCar = 0;
+			double vol = 0;
 			if (fromLink != null && !fromLink.isBlank()) {
 				linkId = Id.createLinkId(fromLink);
-				volCar = sum(volume.getVolumesForLink(linkId, TransportMode.car)) / sample.getSample();
+				vol = sum(volume.getVolumesForLink(linkId)) * sample.getUpscaleFactor();
 			}
 
 			if (toLink != null && !toLink.isBlank()) {
 				linkId = Id.createLinkId(toLink);
-				volCar += sum(volume.getVolumesForLink(linkId, TransportMode.car)) / sample.getSample();
+				vol += sum(volume.getVolumesForLink(linkId)) * sample.getUpscaleFactor();
 			}
 
 			row.setText("link_id", linkId.toString());
 			row.setText("road_type", NetworkUtils.getHighwayType(network.getLinks().get(linkId)));
-			row.setDouble("simulated_traffic_volume", volCar);
-			row.setDouble("abs_error", Math.abs(volCar - row.getInt("vol_car")));
-			double relError = row.getDouble("abs_error") / row.getInt("vol_car");
+			row.setDouble("simulated_traffic_volume", vol);
+			row.setDouble("abs_error", Math.abs(vol - row.getInt("vol")));
+			double relError = row.getDouble("abs_error") / row.getInt("vol");
 			row.setDouble("rel_error", relError);
 
-			double rel = volCar / row.getInt("vol_car");
+			row.setDouble("sqv", sqv(vol, row.getInt("vol"), 10_000));
+
+			double rel = vol / row.getInt("vol");
 			if (rel > 1.25)
 				row.setString("quality", "over");
 			else if (relError < 0.85)

@@ -62,14 +62,19 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 	 * Stores all mappings.
 	 */
 	private final Map<Id<Link>, Mapping> mappings = new HashMap<>();
+
 	@CommandLine.Mixin
 	private InputOptions input = InputOptions.ofCommand(CreateCountsFromGeoPortalBerlin.class);
+
 	@CommandLine.Mixin
 	private OutputOptions output = OutputOptions.ofCommand(CreateCountsFromGeoPortalBerlin.class);
+
 	@CommandLine.Option(names = "--network-geometries", description = "path to *linkGeometries.csv")
 	private Path networkGeometries;
+
 	@CommandLine.Mixin
 	private CountsOptions counts = new CountsOptions();
+
 	@CommandLine.Mixin
 	private ShpOptions shp = new ShpOptions();
 
@@ -112,6 +117,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 		Map<Id<Link>, Geometry> geometries = networkGeometries != null
 			? NetworkIndex.readGeometriesFromSumo(networkGeometries.toString(), IdentityTransform.create(2))
 			: new HashMap<>();
+
 		NetworkIndex<MultiLineString> index = new NetworkIndex<>(filteredNetwork, geometries, 20, toMatch -> toMatch);
 
 		// Compare two line strings
@@ -150,7 +156,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 
 		try (CSVPrinter csv = new CSVPrinter(Files.newBufferedWriter(out), CSVFormat.DEFAULT)) {
 
-			csv.printRecord("station_id", "station_name", "to_link", "from_link", "vol_car", "vol_freight");
+			csv.printRecord("station_id", "station_name", "to_link", "from_link", "vol", "vol_hgv");
 
 			// There are double entries
 			Set<Mapping> ms = new HashSet<>(mappings.values());
@@ -158,7 +164,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 			for (Mapping m : ms) {
 				String to = m.toDirection != null ? m.toDirection.toString() : "";
 				String from = m.fromDirection != null ? m.fromDirection.toString() : "";
-				csv.printRecord(m.stationId, m.stationName, to, from, m.avgCar, m.avgHGV);
+				csv.printRecord(m.stationId, m.stationName, to, from, m.dtv, m.dtvHGV);
 			}
 		}
 
@@ -174,16 +180,14 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 	private void handleMatch(SimpleFeature feature, Link toDirection, Link fromDirection) {
 
 		String name = (String) feature.getAttribute("str_name");
-		// throws exceptions if attribute isn't casted to type 'long'
-		long carDTVLong = (long) feature.getAttribute("dtvw_kfz");
-		int carDTV = (int) carDTVLong;
-		long freightDTVLong = (long) feature.getAttribute("dtvw_lkw");
-		int freightDTV = (int) freightDTVLong;
+
+		long dtv = (long) feature.getAttribute("dtvw_kfz");
+		long freightDTV = (long) feature.getAttribute("dtvw_lkw");
 
 		Mapping m = new Mapping((String) feature.getAttribute("link_id"), name,
 			toDirection != null ? toDirection.getId() : null,
 			fromDirection != null ? fromDirection.getId() : null,
-			carDTV, freightDTV);
+			dtv, freightDTV);
 
 		// A link can not be mapped twice
 		if ((m.toDirection != null && mappings.containsKey(m.toDirection)) ||
@@ -216,7 +220,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 				Mapping m = mappings.get(link.getId());
 				stationId = m.stationId;
 				stationName = m.stationName;
-				volume = (m.avgCar + m.avgHGV) * PEAK_PERCENTAGE;
+				volume = m.dtv * PEAK_PERCENTAGE;
 				// Links in both direction are assumed to be slightly asymmetric
 				if (m.fromDirection != null && m.toDirection != null)
 					volume /= 1.8;
@@ -228,7 +232,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 
 					stationId = (String) ft.getAttribute("link_id");
 					stationName = (String) ft.getAttribute("str_name");
-					volume = (long) ft.getAttribute("dtvw_kfz") + (long) ft.getAttribute("dtvw_lkw");
+					volume = (long) ft.getAttribute("dtvw_kfz");
 					volume *= PEAK_PERCENTAGE;
 
 					String direction = (String) ft.getAttribute("vricht");
@@ -284,7 +288,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 		return Math.abs(angle) < (Math.PI / 2) * 0.9;
 	}
 
-	private record Mapping(String stationId, String stationName, Id<Link> toDirection, Id<Link> fromDirection, int avgCar, int avgHGV) {
+	private record Mapping(String stationId, String stationName, Id<Link> toDirection, Id<Link> fromDirection, long dtv, long dtvHGV) {
 	}
 
 	/**
