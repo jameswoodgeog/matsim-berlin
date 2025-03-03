@@ -28,6 +28,10 @@ import org.matsim.core.config.groups.NetworkConfigGroup;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.network.filter.NetworkFilterManager;
 import org.matsim.core.utils.geometry.geotools.MGC;
+import org.matsim.counts.Counts;
+import org.matsim.counts.CountsWriter;
+import org.matsim.counts.Measurable;
+import org.matsim.counts.MeasurementLocation;
 import org.matsim.run.OpenBerlinScenario;
 import org.geotools.api.feature.simple.SimpleFeature;
 import picocli.CommandLine;
@@ -45,7 +49,7 @@ import java.util.function.Predicate;
 @CommandLine.Command(name = "counts-from-geoportal", description = "Creates MATSim counts from Berlin FIS Broker count data")
 @CommandSpec(
 	requireNetwork = true,
-	produces = {"dtv_berlin.csv", "dtv_links_capacity.csv"}
+	produces = {"dtv_berlin.csv", "dtv_links_capacity.csv", "counts-dtv.xml.gz"}
 )
 public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 
@@ -131,7 +135,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 
 			counter++;
 			String id = (String) feature.getAttribute("link_id");
-			if (counts.getIgnored().contains(id))
+			if (counts.isIgnored(id))
 				continue;
 
 			if (!(feature.getDefaultGeometry() instanceof MultiLineString ls)) {
@@ -154,19 +158,34 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 		Path out = output.getPath();
 		log.info("Write results to {}", out);
 
+		// There are double entries
+		Set<Mapping> ms = new HashSet<>(mappings.values());
+
 		try (CSVPrinter csv = new CSVPrinter(Files.newBufferedWriter(out), CSVFormat.DEFAULT)) {
 
-			csv.printRecord("station_id", "station_name", "to_link", "from_link", "vol", "vol_hgv");
-
-			// There are double entries
-			Set<Mapping> ms = new HashSet<>(mappings.values());
+			csv.printRecord("station_id", "station_name", "direction", "to_link", "from_link", "vol", "vol_hgv");
 
 			for (Mapping m : ms) {
 				String to = m.toDirection != null ? m.toDirection.toString() : "";
 				String from = m.fromDirection != null ? m.fromDirection.toString() : "";
-				csv.printRecord(m.stationId, m.stationName, to, from, m.dtv, m.dtvHGV);
+				csv.printRecord(m.stationId, m.stationName, m.direction, to, from, m.dtv, m.dtvHGV);
 			}
 		}
+
+		Counts<Link> c = new Counts<>();
+
+		for (Mapping m: ms) {
+			// Only write links with separate direction
+			if (m.fromDirection != null && m.toDirection != null)
+				continue;
+
+			MeasurementLocation<Link> l = c.createAndAddMeasureLocation(m.fromDirection != null ? m.fromDirection : m.toDirection, m.stationName);
+
+			Measurable v = l.createVolume(TransportMode.car, Measurable.DAILY);
+			v.setDailyValue(m.dtv - m.dtvHGV);
+		}
+
+		new CountsWriter(c).write(output.getPath("counts-dtv.xml.gz").toAbsolutePath().toString());
 
 		InverseIndex invIndex = new InverseIndex(features, transformation);
 
@@ -185,6 +204,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 		long freightDTV = (long) feature.getAttribute("dtvw_lkw");
 
 		Mapping m = new Mapping((String) feature.getAttribute("link_id"), name,
+			(String) feature.getAttribute("vricht"),
 			toDirection != null ? toDirection.getId() : null,
 			fromDirection != null ? fromDirection.getId() : null,
 			dtv, freightDTV);
@@ -288,7 +308,7 @@ public class CreateCountsFromGeoPortalBerlin implements MATSimAppCommand {
 		return Math.abs(angle) < (Math.PI / 2) * 0.9;
 	}
 
-	private record Mapping(String stationId, String stationName, Id<Link> toDirection, Id<Link> fromDirection, long dtv, long dtvHGV) {
+	private record Mapping(String stationId, String stationName, String direction, Id<Link> toDirection, Id<Link> fromDirection, long dtv, long dtvHGV) {
 	}
 
 	/**

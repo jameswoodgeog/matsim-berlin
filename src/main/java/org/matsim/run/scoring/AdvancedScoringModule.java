@@ -16,6 +16,7 @@ public class AdvancedScoringModule extends AbstractModule {
 		ConfigUtils.addOrGetModule(getConfig(), AdvancedScoringConfigGroup.class);
 
 		bind(ScoringParametersForPerson.class).to(IndividualPersonScoringParameters.class).in(Singleton.class);
+		bind(TransitRouteToMode.class).in(Singleton.class);
 
 		bind(PseudoRandomScorer.class).in(Singleton.class);
 		bind(PseudoRandomTripError.class).to(DefaultPseudoRandomTripError.class).in(Singleton.class);

@@ -33,6 +33,7 @@ import org.matsim.core.gbl.Gbl;
 import org.matsim.core.scoring.functions.ModeUtilityParameters;
 import org.matsim.core.scoring.functions.ScoringParameters;
 import org.matsim.pt.PtConstants;
+import org.matsim.pt.routes.DefaultTransitPassengerRoute;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -52,6 +53,12 @@ public final class PiecewiseLinearlLegScoring implements org.matsim.core.scoring
 	 */
 	private final ScoringParameters params;
 	private final Set<String> ptModes;
+
+	/**
+	 * Lookup for transit route to specific mode.
+	 */
+	private final TransitRouteToMode ptRouteToMode;
+
 	private final double marginalUtilityOfMoney;
 	private final Set<String> modesAlreadyConsideredForDailyConstants;
 	private double score;
@@ -60,11 +67,12 @@ public final class PiecewiseLinearlLegScoring implements org.matsim.core.scoring
 	private boolean currentLegIsPtLeg = false;
 	private double lastActivityEndTime = Double.NaN;
 
-	public PiecewiseLinearlLegScoring(final ScoringParameters params, Set<String> ptModes) {
+	public PiecewiseLinearlLegScoring(final ScoringParameters params, Set<String> ptModes, TransitRouteToMode ptRouteToMode) {
 		this.params = params;
 		this.ptModes = ptModes;
 		this.modesAlreadyConsideredForDailyConstants = new HashSet<>();
 		this.marginalUtilityOfMoney = this.params.marginalUtilityOfMoney;
+		this.ptRouteToMode = ptRouteToMode;
 	}
 
 	@Override
@@ -96,6 +104,21 @@ public final class PiecewiseLinearlLegScoring implements org.matsim.core.scoring
 		}
 
 		tmpScore += travelTime * modeParams.marginalUtilityOfTraveling_s;
+
+
+		// Score individual pt legs by their transport mode
+		if (leg.getRoute() instanceof DefaultTransitPassengerRoute pt) {
+
+			String ptMode = ptRouteToMode.getMode(pt);
+			if (ptMode != null && this.params.modeParams.containsKey(ptMode)) {
+				ModeUtilityParameters p = this.params.modeParams.get(ptMode);
+
+				// Perform the standard leg scoring
+				tmpScore += p.constant;
+				tmpScore += p.marginalUtilityOfDistance_m * pt.getDistance();
+				tmpScore += p.monetaryDistanceCostRate * this.marginalUtilityOfMoney * pt.getDistance();
+			}
+		}
 
 		if (modeParams instanceof DistanceGroupModeUtilityParameters distParams) {
 

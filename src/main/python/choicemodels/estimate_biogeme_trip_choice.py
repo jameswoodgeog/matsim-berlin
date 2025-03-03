@@ -23,6 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--est-exp-income", help="Estimate exponent for income", action="store_true")
     parser.add_argument("--est-util-money", help="Estimate utility of money", action="store_true")
     parser.add_argument("--est-pt-switches", help="Estimate the beta for PT switches", action="store_true")
+    parser.add_argument("--est-bus-legs", help="Estimate the beta for Bus legs", action="store_true")
     parser.add_argument("--est-price-perception-car", help="Estimate price perception", action="store_true")
     parser.add_argument("--est-price-perception-pt", help="Estimate price perception", action="store_true")
     parser.add_argument("--est-ride-alpha", help="Estimate ride detour parameter", action="store_true")
@@ -65,6 +66,7 @@ if __name__ == "__main__":
         BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', 1, 0, 1, ESTIMATE if args.est_price_perception_pt else FIXED)
 
     BETA_PT_SWITCHES = Beta('BETA_PT_SWITCHES', 1, 0, None, ESTIMATE if args.est_pt_switches else FIXED)
+    BETA_BUS_USAGE = Beta('BETA_BUS_LEGS', 0, 0, None, ESTIMATE if args.est_bus_legs else FIXED)
 
     # THe detour factor for ride trip, influences the time costs, as well as distance cost
     BETA_RIDE_ALPHA = Beta('BETA_RIDE_ALPHA', 1, 0, 2, ESTIMATE if args.est_ride_alpha else FIXED)
@@ -92,6 +94,7 @@ if __name__ == "__main__":
 
         if mode == "pt":
             u -= v[f"{mode}_switches"] * BETA_PT_SWITCHES
+            u -= v[f"{mode}_bus_legs"] * BETA_BUS_USAGE
 
         if mode == "bike":
             u -= v[f"{mode}_hours"] * BETA_BIKE_EFFORT
@@ -129,6 +132,8 @@ if __name__ == "__main__":
         modelName += "_pt_price_perception"
     if args.est_pt_switches:
         modelName += "_pt_switches"
+    if args.est_bus_legs:
+        modelName += "_bus_legs"
 
     biogeme.modelName = modelName
     biogeme.weight = v["weight"]

@@ -20,15 +20,17 @@ public class AdvancedScoringFunctionFactory implements ScoringFunctionFactory {
 	private final AnalysisMainModeIdentifier mmi;
 	private final ScoringParametersForPerson params;
 	private final PseudoRandomScorer pseudoRNG;
+	private final TransitRouteToMode ptRouteToMode;
 
 	@Inject
-	public AdvancedScoringFunctionFactory(Config config, AnalysisMainModeIdentifier mmi,
+	public AdvancedScoringFunctionFactory(Config config, AnalysisMainModeIdentifier mmi, TransitRouteToMode ptRouteToMode,
 										  ScoringParametersForPerson params, PseudoRandomScorer pseudoRNG) {
 		this.config = config;
 		this.scoring = ConfigUtils.addOrGetModule(config, AdvancedScoringConfigGroup.class);
 		this.mmi = mmi;
 		this.params = params;
 		this.pseudoRNG = pseudoRNG;
+		this.ptRouteToMode = ptRouteToMode;
 	}
 
 	@Override
@@ -43,7 +45,7 @@ public class AdvancedScoringFunctionFactory implements ScoringFunctionFactory {
 		}
 
 		// replaced original leg scoring
-		sumScoringFunction.addScoringFunction(new PiecewiseLinearlLegScoring(parameters, config.transit().getTransitModes()));
+		sumScoringFunction.addScoringFunction(new PiecewiseLinearlLegScoring(parameters, config.transit().getTransitModes(), ptRouteToMode));
 		sumScoringFunction.addScoringFunction(new CharyparNagelMoneyScoring(parameters));
 		sumScoringFunction.addScoringFunction(new CharyparNagelAgentStuckScoring(parameters));
 		sumScoringFunction.addScoringFunction(new ScoreEventScoring());

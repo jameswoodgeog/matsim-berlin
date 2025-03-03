@@ -111,6 +111,7 @@ public class DTVAnalysis implements MATSimAppCommand {
 			TextColumn.create("link_id"),
 			StringColumn.create("road_type"),
 			DoubleColumn.create("simulated_traffic_volume"),
+			DoubleColumn.create("diff"),
 			DoubleColumn.create("abs_error"),
 			DoubleColumn.create("rel_error"),
 			DoubleColumn.create("sqv"),
@@ -136,6 +137,7 @@ public class DTVAnalysis implements MATSimAppCommand {
 
 			row.setText("link_id", linkId.toString());
 			row.setText("road_type", NetworkUtils.getHighwayType(network.getLinks().get(linkId)));
+			row.setDouble("diff", vol - row.getInt("vol"));
 			row.setDouble("simulated_traffic_volume", vol);
 			row.setDouble("abs_error", Math.abs(vol - row.getInt("vol")));
 			double relError = row.getDouble("abs_error") / row.getInt("vol");

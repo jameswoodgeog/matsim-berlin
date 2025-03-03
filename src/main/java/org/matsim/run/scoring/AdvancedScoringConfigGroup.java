@@ -1,5 +1,6 @@
 package org.matsim.run.scoring;
 
+import com.google.common.collect.Iterables;
 import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ReflectiveConfigGroup;
 
@@ -107,6 +108,11 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 		 */
 		private final Map<String, ModeParams> modeParams = new HashMap<>();
 
+		/**
+		 * Scoring parameter for individual pt types. This requires that transit lines have a "simple_route_type" attribute.
+		 */
+		private final Map<String, ModeParams> ptParams = new HashMap<>();
+
 		public ScoringParameters() {
 			super(GROUP_NAME, true);
 		}
@@ -115,10 +121,23 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 			return modeParams;
 		}
 
+		public Map<String, ModeParams> getPtParams() {
+			return ptParams;
+		}
+
+		/**
+		 * Returns mode params and pt params.
+		 *
+		 */
+		public Iterable<Map.Entry<String, ModeParams>> getAllModeEntries() {
+			return Iterables.concat(modeParams.entrySet(), ptParams.entrySet());
+		}
+
 		@Override
 		public ConfigGroup createParameterSet(final String type) {
 			return switch (type) {
-				case ModeParams.GROUP_NAME -> new ModeParams();
+				case ModeParams.GROUP_NAME -> new ModeParams(false);
+				case ModeParams.PT_GROUP_NAME -> new ModeParams(true);
 				default -> throw new IllegalArgumentException(type);
 			};
 		}
@@ -127,7 +146,11 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 		public void addParameterSet(ConfigGroup set) {
 			if (set instanceof ModeParams p) {
 				super.addParameterSet(set);
-				modeParams.put(p.mode, p);
+
+				if (set.getName().equals(ModeParams.PT_GROUP_NAME))
+					ptParams.put(p.mode, p);
+				else if (set.getName().equals(ModeParams.GROUP_NAME))
+					modeParams.put(p.mode, p);
 			} else {
 				throw new IllegalArgumentException("Unsupported parameter set class: " + set);
 			}
@@ -138,7 +161,7 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 		 */
 		public ModeParams getOrCreateModeParams(String mode) {
 			if (!modeParams.containsKey(mode)) {
-				ModeParams p = new ModeParams();
+				ModeParams p = new ModeParams(false);
 				p.mode = mode;
 
 				addParameterSet(p);
@@ -146,6 +169,21 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 			}
 
 			return modeParams.get(mode);
+		}
+
+		/**
+		 * Retrieve mode parameters for a specific pt type.
+		 */
+		public ModeParams getOrCreatePtParams(String ptType) {
+			if (!ptParams.containsKey(ptType)) {
+				ModeParams p = new ModeParams(true);
+				p.mode = ptType;
+
+				addParameterSet(p);
+				return p;
+			}
+
+			return ptParams.get(ptType);
 		}
 
 	}
@@ -156,6 +194,7 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 	public static final class ModeParams extends ReflectiveConfigGroup {
 
 		private static final String GROUP_NAME = "modeParams";
+		private static final String PT_GROUP_NAME = "ptParams";
 
 		@Parameter
 		@Comment("The mode for which the parameters are defined.")
@@ -197,8 +236,8 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 		public double expDist = 0;
 		 */
 
-		public ModeParams() {
-			super(GROUP_NAME);
+		public ModeParams(boolean isPt) {
+			super(isPt ? PT_GROUP_NAME : GROUP_NAME);
 		}
 	}
 }

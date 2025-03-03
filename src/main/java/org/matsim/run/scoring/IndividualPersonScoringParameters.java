@@ -227,7 +227,7 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 			for (AdvancedScoringConfigGroup.ScoringParameters parameter : scoring.getScoringParameters()) {
 
 				if (Category.matchAttributesWithConfig(person.getAttributes(), parameter, categories)) {
-					for (Map.Entry<String, AdvancedScoringConfigGroup.ModeParams> mode : parameter.getModeParams().entrySet()) {
+					for (Map.Entry<String, AdvancedScoringConfigGroup.ModeParams> mode : parameter.getAllModeEntries()) {
 
 						DistanceGroupModeUtilityParameters.DeltaBuilder b =
 							deltaParams.computeIfAbsent(mode.getKey(), k -> new DistanceGroupModeUtilityParameters.DeltaBuilder());
@@ -251,6 +251,11 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 			for (Map.Entry<String, DistanceGroupModeUtilityParameters.DeltaBuilder> mode : deltaParams.entrySet()) {
 				ModeUtilityParameters params = builder.getModeParameters(mode.getKey());
 				DistanceGroupModeUtilityParameters.DeltaBuilder delta = mode.getValue();
+
+				// This may happen for PT params
+				if (params == null) {
+					params = new ModeUtilityParameters(0, 0, 0, 0, 0, 0);
+				}
 
 				// These arrays are re-used if possible
 				DistanceGroup[] groups = distGroups.computeIfAbsent(delta.getPerDistGroup(), k -> calcDistanceGroups(scoring.distGroups, k));

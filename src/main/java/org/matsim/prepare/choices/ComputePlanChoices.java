@@ -30,6 +30,9 @@ import org.matsim.modechoice.estimators.DefaultLegScoreEstimator;
 import org.matsim.modechoice.estimators.FixedCostsEstimator;
 import org.matsim.modechoice.search.TopKChoicesGenerator;
 import org.matsim.prepare.population.Attributes;
+import org.matsim.pt.routes.DefaultTransitPassengerRoute;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.run.scoring.TransitRouteToMode;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import picocli.CommandLine;
 
@@ -86,6 +89,8 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 	private ThreadLocal<Ctx> thread;
 	private ProgressBar pb;
 	private double globalAvgIncome;
+	private TransitRouteToMode ptToMode;
+
 	/**
 	 * Maximum numbers of plan options generated.
 	 */
@@ -184,6 +189,8 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			.average()
 			.orElse(Double.NaN);
 
+		ptToMode = new TransitRouteToMode(injector.getInstance(TransitSchedule.class));
+
 		pb = new ProgressBar("Computing plan choices", population.getPersons().size());
 
 		ParallelPersonAlgorithmUtils.run(population, Runtime.getRuntime().availableProcessors(), this);
@@ -223,6 +230,7 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 					header.add("plan_%d_trip_%d_mode".formatted(i, j));
 				}
 
+				header.add(String.format("plan_%d_bus_legs", i));
 				header.add(String.format("plan_%d_act_util", i));
 				header.add(String.format("plan_%d_valid", i));
 			}
@@ -347,6 +355,7 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			}
 
 			row.add(0);
+			row.add(0);
 
 			return row;
 		}
@@ -370,6 +379,8 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 				row.add(-1);
 			}
 		}
+
+		row.add(info.busLegs);
 
 		if (calcScores)
 			row.add(scorer.score(plan).getDouble("score"));
@@ -418,7 +429,17 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			usedModes.add(mmi.identifyMainMode(trip.getLegsOnly()));
 		}
 
-		return new AggrModeInfo(usedModes, stats);
+		// Count bus usages
+		long busLegs = 0;
+		for (Leg leg : TripStructureUtils.getLegs(plan)) {
+			if (leg.getRoute() instanceof DefaultTransitPassengerRoute pt) {
+				if (Objects.equals(ptToMode.getMode(pt), "bus")) {
+					busLegs++;
+				}
+			}
+		}
+
+		return new AggrModeInfo(usedModes, stats, busLegs);
 	}
 
 	/**
@@ -428,7 +449,7 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 		bestK, diverse, random, carAlternative, subtour
 	}
 
-	private record AggrModeInfo(List<String> modes, Map<String, ModeStats> stats) {
+	private record AggrModeInfo(List<String> modes, Map<String, ModeStats> stats, long busLegs) {
 	}
 
 	private record ModeStats(int usage, double travelTime, double travelDistance, double rideTime, long numSwitches) {

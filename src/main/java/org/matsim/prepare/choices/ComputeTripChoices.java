@@ -31,6 +31,8 @@ import org.matsim.core.utils.timing.TimeTracker;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.Facility;
 import org.matsim.prepare.population.Attributes;
+import org.matsim.pt.routes.DefaultTransitPassengerRoute;
+import org.matsim.run.scoring.TransitRouteToMode;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.utils.objectattributes.attributable.AttributesImpl;
 import picocli.CommandLine;
@@ -108,6 +110,8 @@ public class ComputeTripChoices implements MATSimAppCommand {
 			.average()
 			.orElse(Double.NaN);
 
+		TransitRouteToMode ptToMode = new TransitRouteToMode(scenario.getTransitSchedule());
+
 		// Progress bar will be inaccurate
 		ProgressBar pb = new ProgressBar("Computing choices", persons.size() * 3L);
 
@@ -138,7 +142,7 @@ public class ComputeTripChoices implements MATSimAppCommand {
 				futures.add(CompletableFuture.supplyAsync(() -> {
 					TripRouter r = ctx.get();
 
-					List<Object> entries = computeAlternatives(r, scenario.getNetwork(), person, trip, departure, n);
+					List<Object> entries = computeAlternatives(r, scenario.getNetwork(), person, trip, ptToMode, departure, n);
 					pb.step();
 
 					return entries;
@@ -169,6 +173,7 @@ public class ComputeTripChoices implements MATSimAppCommand {
 				header.add(mode + "_hours");
 				header.add(mode + "_walking_km");
 				header.add(mode + "_switches");
+				header.add(mode + "_bus_legs");
 				header.add(mode + "_valid");
 			}
 
@@ -190,7 +195,7 @@ public class ComputeTripChoices implements MATSimAppCommand {
 	/**
 	 * Compute all alternatives for a given trip.
 	 */
-	private List<Object> computeAlternatives(TripRouter router, Network network, Person person, TripStructureUtils.Trip trip, double departure, int seq) {
+	private List<Object> computeAlternatives(TripRouter router, Network network, Person person, TripStructureUtils.Trip trip, TransitRouteToMode ptToMode, double departure, int seq) {
 
 		double beelineDist = CoordUtils.calcEuclideanDistance(trip.getOriginActivity().getCoord(), trip.getDestinationActivity().getCoord());
 
@@ -215,6 +220,7 @@ public class ComputeTripChoices implements MATSimAppCommand {
 			double travelTime = 0;
 			double travelDistance = 0;
 			double walkDistance = 0;
+			int busLegs = 0;
 			boolean valid = false;
 
 			List<? extends PlanElement> route = router.calcRoute(mode, origin, destination, departure, person, new AttributesImpl());
@@ -227,6 +233,12 @@ public class ComputeTripChoices implements MATSimAppCommand {
 
 					if (leg.getMode().equals(TransportMode.walk)) {
 						walkDistance += leg.getRoute().getDistance();
+					}
+
+					if (leg.getRoute() instanceof DefaultTransitPassengerRoute pt) {
+						if (Objects.equals(ptToMode.getMode(pt), "bus")) {
+							busLegs++;
+						}
 					}
 
 					if (leg.getMode().equals(mode))
@@ -246,7 +258,7 @@ public class ComputeTripChoices implements MATSimAppCommand {
 				return null;
 			}
 
-			row.addAll(List.of(travelDistance / 1000, travelTime / 3600, walkDistance / 1000, switches, valid));
+			row.addAll(List.of(travelDistance / 1000, travelTime / 3600, walkDistance / 1000, switches, busLegs, valid));
 		}
 
 		return row;
