@@ -135,7 +135,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 
-		Map<String, Map<String, Object>> osmAttributes = readCSVToMap("pathToOSMcsv");
+		Map<String, Map<String, Object>> osmAttributes = readCSVToMap(pathToOSMcsv);
 
 		for (Link link : scenario.getNetwork().getLinks().values()) {
 			Map<String, Object> innerMap = osmAttributes.get(link.getId().toString());
