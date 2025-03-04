@@ -36,6 +36,9 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	@CommandLine.Option(names = "--bike", defaultValue = "bikeTeleportedStandardMatsim", description = "Define how bicycles are simulated")
 	private BicycleHandling bicycleHandling;
 
+	@CommandLine.Option(names = "--pathToOSMcsv", defaultValue = "input/v6.4/berlin-v6.4-network-ft.csv")
+	private String pathToOSMcsv;
+
 	public static void main(String[] args) {
 		MATSimApplication.run(RunOpenBerlinWithBikeOnNetwork.class, args);
 	}
@@ -132,7 +135,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 			new MultimodalNetworkCleaner(scenario.getNetwork()).run(Collections.singleton(TransportMode.bike));
 		}
 
-		Map<String, Map<String, Object>> osmAttributes = readCSVToMap("input/v6.4/berlin-v6.4-network-ft.csv");
+		Map<String, Map<String, Object>> osmAttributes = readCSVToMap("pathToOSMcsv");
 
 		for (Link link : scenario.getNetwork().getLinks().values()) {
 			Map<String, Object> innerMap = osmAttributes.get(link.getId().toString());
@@ -141,7 +144,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 					String columnName = innerEntry.getKey(); // The column name (e.g., "highway_type")
 					Object columnValue = innerEntry.getValue(); // The value for that column (could be String, Integer, etc.)
 					link.getAttributes().putAttribute(columnName, columnValue);
-					//log.info("Link " + link.getId() + " has attribute " + columnName);
+					log.info("Link " + link.getId() + " has attribute " + columnName);
 				}
 			}
 		}
