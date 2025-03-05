@@ -144,7 +144,7 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 					String columnName = innerEntry.getKey(); // The column name (e.g., "highway_type")
 					Object columnValue = innerEntry.getValue(); // The value for that column (could be String, Integer, etc.)
 					link.getAttributes().putAttribute(columnName, columnValue);
-					log.info("Link " + link.getId() + " has attribute " + columnName);
+					//log.info("Link " + link.getId() + " has attribute " + columnName);
 				}
 			}
 		}
