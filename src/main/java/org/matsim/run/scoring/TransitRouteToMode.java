@@ -1,21 +1,18 @@
 package org.matsim.run.scoring;
 
 import com.google.inject.Inject;
-import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.IdMap;
 import org.matsim.pt.routes.DefaultTransitPassengerRoute;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 
-import java.util.Map;
-
 /**
  * Used to lookup the mode of a transit route.
  */
 public final class TransitRouteToMode {
 
-	private final Map<Id<TransitRoute>, String> routeToMode = new IdMap<>(TransitRoute.class);
+	private final IdMap<TransitRoute, String> routeToMode = new IdMap<>(TransitRoute.class);
 
 	@Inject
 	public TransitRouteToMode(TransitSchedule transitSchedule) {

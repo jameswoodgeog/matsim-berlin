@@ -6,6 +6,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
@@ -223,13 +224,13 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 					header.add(String.format("plan_%d_%s_km", i, mode));
 					header.add(String.format("plan_%d_%s_hours", i, mode));
 					header.add(String.format("plan_%d_%s_ride_hours", i, mode));
-					header.add(String.format("plan_%d_%s_n_switches", i, mode));
 				}
 
 				for (int j = 0; j < maxPlanLength; j++) {
 					header.add("plan_%d_trip_%d_mode".formatted(i, j));
 				}
 
+				header.add(String.format("plan_%d_transfers", i));
 				header.add(String.format("plan_%d_bus_legs", i));
 				header.add(String.format("plan_%d_act_util", i));
 				header.add(String.format("plan_%d_valid", i));
@@ -347,13 +348,14 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 		List<Object> row = new ArrayList<>();
 		if (plan == null) {
 			for (String ignored : modes) {
-				row.addAll(List.of(0, 0, 0, 0, 0));
+				row.addAll(List.of(0, 0, 0, 0));
 			}
 
 			for (int j = 0; j < maxPlanLength; j++) {
 				row.add(-1);
 			}
 
+			row.add(0);
 			row.add(0);
 			row.add(0);
 
@@ -368,7 +370,6 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			row.add(modeStats.travelDistance / 1000);
 			row.add(modeStats.travelTime / 3600);
 			row.add(modeStats.rideTime / 3600);
-			row.add(modeStats.numSwitches);
 		}
 
 		// Fill information of used modes
@@ -380,6 +381,7 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			}
 		}
 
+		row.add(info.transfers);
 		row.add(info.busLegs);
 
 		if (calcScores)
@@ -399,13 +401,13 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 		Map<String, ModeStats> stats = new HashMap<>();
 
 		List<TripStructureUtils.Trip> trips = TripStructureUtils.getTrips(plan);
+
 		for (String mode : modes) {
 
 			int usage = 0;
 			double travelTime = 0;
 			double rideTime = 0;
 			double travelDistance = 0;
-			long switches = 0;
 
 			for (TripStructureUtils.Trip trip : trips) {
 				List<Leg> legs = trip.getLegsOnly();
@@ -417,16 +419,26 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 					rideTime += legs.stream().filter(l -> l.getMode().equals(mode))
 						.mapToDouble(l -> l.getRoute().getTravelTime().seconds()).sum();
 
-					// This is mainly used for PT, to count the number of switches
-					switches += legs.stream().filter(l -> l.getMode().equals(mode)).count() - 1;
 				}
 			}
 
-			stats.put(mode, new ModeStats(usage, travelTime, travelDistance, rideTime, switches));
+			stats.put(mode, new ModeStats(usage, travelTime, travelDistance, rideTime));
 		}
 
+		// Number of transfers for PT
+		long transfers = 0;
+
 		for (TripStructureUtils.Trip trip : trips) {
-			usedModes.add(mmi.identifyMainMode(trip.getLegsOnly()));
+			String mainMode = mmi.identifyMainMode(trip.getLegsOnly());
+			usedModes.add(mainMode);
+
+			if (mainMode.equals(TransportMode.pt)) {
+				long t = trip.getLegsOnly().stream().filter(l -> l.getMode().equals(TransportMode.pt)).count() - 1;
+
+				// t should not be negative because the main mode is checked.
+				if (t > 0)
+					transfers += t;
+			}
 		}
 
 		// Count bus usages
@@ -439,7 +451,7 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 			}
 		}
 
-		return new AggrModeInfo(usedModes, stats, busLegs);
+		return new AggrModeInfo(usedModes, stats, transfers, busLegs);
 	}
 
 	/**
@@ -449,10 +461,10 @@ public class ComputePlanChoices implements MATSimAppCommand, PersonAlgorithm {
 		bestK, diverse, random, carAlternative, subtour
 	}
 
-	private record AggrModeInfo(List<String> modes, Map<String, ModeStats> stats, long busLegs) {
+	private record AggrModeInfo(List<String> modes, Map<String, ModeStats> stats, long transfers, long busLegs) {
 	}
 
-	private record ModeStats(int usage, double travelTime, double travelDistance, double rideTime, long numSwitches) {
+	private record ModeStats(int usage, double travelTime, double travelDistance, double rideTime) {
 	}
 
 	private record Ctx(PlanRouter router, ChoiceGenerator generator, PseudoScorer scorer) {

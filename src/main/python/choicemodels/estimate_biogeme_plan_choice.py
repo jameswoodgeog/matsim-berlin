@@ -27,6 +27,8 @@ if __name__ == "__main__":
     parser.add_argument("--est-exp-income", help="Estimate exponent for income", action="store_true")
     parser.add_argument("--exp-income", help="Exponent for income", type=float, default=1)
     parser.add_argument("--util-money", help="Utility of money", type=float, default=1)
+    parser.add_argument("--est-bus-legs", help="Estimate the beta for Bus legs", action="store_true")
+    parser.add_argument("--est-pt-switches", help="Estimate beta for number of pt switches", action="store_true")
     parser.add_argument("--est-util-money", help="Estimate utility of money", action="store_true")
     parser.add_argument("--est-error-component", help="Add a normal error component to each trip choice", action="store_true")
     parser.add_argument("--ec", help="Factor for error component", type=float, default=None)
@@ -79,7 +81,7 @@ if __name__ == "__main__":
     # Factor on marginal utility of money
     EXP_INCOME = Beta('EXP_INCOME', args.exp_income, 0, 1.5, ESTIMATE if args.est_exp_income else FIXED)
 
-    UTIL_MONEY = Beta('UTIL_MONEY', args.util_money, 0, 2, ESTIMATE if args.est_util_money else FIXED)
+    UTIL_MONEY = Beta('UTIL_MONEY', args.util_money, 0.2, 1.5, ESTIMATE if args.est_util_money else FIXED)
 
     BETA_PERFORMING = Beta('BETA_PERFORMING', args.performing, 1, 15, ESTIMATE if args.est_performing else FIXED)
     BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', args.price_perception, 0, 1, ESTIMATE if args.est_price_perception_car else FIXED)
@@ -88,6 +90,9 @@ if __name__ == "__main__":
         BETA_PT_PRICE_PERCEPTION = BETA_CAR_PRICE_PERCEPTION
     else:
         BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', args.price_perception, 0, 1, ESTIMATE if args.est_price_perception_pt else FIXED)
+
+    BETA_BUS_LEGS = Beta('BETA_BUS_LEGS', 0, None, 0, ESTIMATE if args.est_bus_legs else FIXED)
+    BETA_PT_SWITCHES = Beta('BETA_PT_SWITCHES', -1, None, 0, ESTIMATE if args.est_pt_switches else FIXED)
 
     is_est_car = "car" in args.mxl_modes
 
@@ -151,7 +156,8 @@ if __name__ == "__main__":
                            v[f"plan_{i}_other_price"])
 
         u = perceived_price * UTIL_MONEY * (1 if args.no_income else (ds.global_income / v["income"]) ** EXP_INCOME)
-        u -= v[f"plan_{i}_pt_n_switches"]
+        u += v[f"plan_{i}_transfers"] * BETA_PT_SWITCHES
+        u += v[f"plan_{i}_bus_legs"] * BETA_BUS_LEGS
 
         for mode in ds.modes:
             u += ASC[mode] * v[f"plan_{i}_{mode}_usage"]
@@ -201,6 +207,10 @@ if __name__ == "__main__":
         modelName += "_price_perception_car"
     if args.est_price_perception_pt:
         modelName += "_price_perception_pt"
+    if args.est_pt_switches:
+        modelName += "_pt_switches"
+    if args.est_bus_legs:
+        modelName += "_bus_legs"
     if args.est_error_component:
         modelName += "_ec"
 

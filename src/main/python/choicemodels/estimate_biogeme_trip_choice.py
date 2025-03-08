@@ -56,7 +56,7 @@ if __name__ == "__main__":
     AV = {}
 
     EXP_INCOME = Beta('EXP_INCOME', 1, 0, 1.5, ESTIMATE if args.est_exp_income else FIXED)
-    UTIL_MONEY = Beta('UTIL_MONEY', 1, 0, 2, ESTIMATE if args.est_util_money else FIXED)
+    UTIL_MONEY = Beta('UTIL_MONEY', 1, 0.3, 1.5, ESTIMATE if args.est_util_money else FIXED)
     BETA_PERFORMING = Beta('BETA_PERFORMING', 6.88, 1, 15, ESTIMATE if args.est_performing else FIXED)
 
     BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', 1, 0, 1, ESTIMATE if args.est_price_perception_car else FIXED)
