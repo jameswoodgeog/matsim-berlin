@@ -194,7 +194,7 @@ public class OpenBerlinScenario extends MATSimApplication {
 
 		@Override
 		public void install() {
-			addTravelTimeBinding(TransportMode.ride).to(networkTravelTime());
+			addTravelTimeBinding(TransportMode.ride).to(carTravelTime());
 			addTravelDisutilityFactoryBinding(TransportMode.ride).to(carTravelDisutilityFactoryKey());
 
 			if (!carOnly) {
