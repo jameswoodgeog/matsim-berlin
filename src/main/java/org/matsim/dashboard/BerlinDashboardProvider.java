@@ -23,7 +23,7 @@ public class BerlinDashboardProvider implements DashboardProvider {
 			.setAnalysisArgs("--match-id", "^berlin.+", "--shp-filter", "none")
 			.withChoiceEvaluation(true)
 			.withDistanceDistribution("mode_share_distance_distribution.csv")
-			.withGroupedRefData("mode_share_per_group_dist_ref.csv", "age", "income", "employment", "economic_status");
+			.withGroupedRefData("mode_share_per_group_dist_ref.csv", "age", "income", "employment", "economic_status", "zone");
 
 		ActivityDashboard activities = new ActivityDashboard("berlin_inspire_grid_1km.gpkg")
 			.addActivityType("work", List.of("work"), List.of(ActivityDashboard.Indicator.COUNTS), false, null)
