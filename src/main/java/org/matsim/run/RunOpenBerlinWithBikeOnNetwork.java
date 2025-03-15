@@ -39,6 +39,9 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	@CommandLine.Option(names = "--pathToOSMcsv", defaultValue = "input/v6.4/berlin-v6.4-network-ft.csv")
 	private String pathToOSMcsv;
 
+	@CommandLine.Option(names = "--noModeChoice", defaultValue = "true")
+	private boolean noModeChoice;
+
 	public static void main(String[] args) {
 		MATSimApplication.run(RunOpenBerlinWithBikeOnNetwork.class, args);
 	}
@@ -47,10 +50,12 @@ public class RunOpenBerlinWithBikeOnNetwork extends OpenBerlinScenario {
 	protected Config prepareConfig(Config config) {
 		super.prepareConfig(config);
 
-		// no mode choice if we simulate bikes
-		for (ReplanningConfigGroup.StrategySettings strategySettings : config.replanning().getStrategySettings()) {
-			if (strategySettings.getStrategyName().equals(DefaultPlanStrategiesModule.DefaultStrategy.SubtourModeChoice)) {
-				strategySettings.setWeight(0.0);
+		if (noModeChoice) {
+			// no mode choice if we simulate bikes
+			for (ReplanningConfigGroup.StrategySettings strategySettings : config.replanning().getStrategySettings()) {
+				if (strategySettings.getStrategyName().equals(DefaultPlanStrategiesModule.DefaultStrategy.SubtourModeChoice)) {
+					strategySettings.setWeight(0.0);
+				}
 			}
 		}
 
