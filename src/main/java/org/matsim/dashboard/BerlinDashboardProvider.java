@@ -32,7 +32,8 @@ public class BerlinDashboardProvider implements DashboardProvider {
 			new NoiseDashboard(config.global().getCoordinateSystem()),
 			new TrafficCountsDashboard()
 				.withModes(TransportMode.car, Set.of(TransportMode.car))
-				.withModes(TransportMode.truck, Set.of(TransportMode.truck, "freight"))
+				.withModes(TransportMode.truck, Set.of(TransportMode.truck, "freight")),
+			new ParkingDashboard()
 		);
 	}
 
