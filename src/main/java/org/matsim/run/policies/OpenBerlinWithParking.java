@@ -4,11 +4,11 @@ import com.google.inject.Singleton;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
-import org.matsim.api.core.v01.network.Network;
 import org.matsim.application.MATSimApplication;
 import org.matsim.core.config.Config;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.mobsim.qsim.AbstractQSimModule;
 import org.matsim.core.mobsim.qsim.qnetsimengine.parking.*;
 import org.matsim.core.network.NetworkUtils;
@@ -16,7 +16,6 @@ import org.matsim.core.network.kernel.ConstantKernelDistance;
 import org.matsim.core.network.kernel.DefaultKernelFunction;
 import org.matsim.core.network.kernel.KernelDistance;
 import org.matsim.core.network.kernel.NetworkKernelFunction;
-import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.run.OpenBerlinScenario;
 
 import java.io.BufferedReader;
@@ -42,7 +41,9 @@ public class OpenBerlinWithParking extends OpenBerlinScenario {
 
 	@Override
 	protected Config prepareConfig(Config config) {
-		return super.prepareConfig(config);
+		Config preparedConfig = super.prepareConfig(config);
+		preparedConfig.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
+		return preparedConfig;
 	}
 
 	@Override
@@ -50,7 +51,6 @@ public class OpenBerlinWithParking extends OpenBerlinScenario {
 		super.prepareScenario(scenario);
 
 		Map<Id<Link>, ParkingData> parkingMap = readCSV("input/v6.4/parking/parking_per_link_wip_2025_03_24.csv");
-
 
 
 		for (Link link : scenario.getNetwork().getLinks().values()) {
