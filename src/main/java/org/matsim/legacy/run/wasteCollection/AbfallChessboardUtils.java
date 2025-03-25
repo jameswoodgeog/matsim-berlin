@@ -106,10 +106,9 @@ public class AbfallChessboardUtils {
 	 *
 	 */
 	private static void defineCarriersChessboard(Carriers carriers, CarrierVehicle vehicleDepot, CarrierCapabilities.FleetSize fleetSize, CarrierVehicleTypes carrierVehicleTypes) {
-		CarrierCapabilities carrierCapabilities = CarrierCapabilities.Builder.newInstance()
-				.addType(carrierVehicleTypes.getVehicleTypes().values().iterator().next()).addVehicle(vehicleDepot).setFleetSize(fleetSize).build();
+		//CarrierCapabilities carrierCapabilities = CarrierCapabilities.Builder.newInstance().addType(carrierVehicleTypes.getVehicleTypes().values().iterator().next()).addVehicle(vehicleDepot).setFleetSize(fleetSize).build();
 
-		carrierChessboard.setCarrierCapabilities(carrierCapabilities);
+		//carrierChessboard.setCarrierCapabilities(carrierCapabilities);
 
 		// Fahrzeugtypen den Anbietern zuordenen
 //		new CarrierVehicleTypeLoader(carriers).loadVehicleTypes(carrierVehicleTypes);

@@ -163,7 +163,7 @@ public class DrtVehicleCreator {
 					.build());
 		}
 		String fileNameBase = vehiclesFilePrefix + amount + "vehicles-" + seats + "seats";
-		new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz");
+		//new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz");
 
 		writeVehStartPositionsCSV(vehicles, fileNameBase);
 	}
@@ -266,7 +266,7 @@ public class DrtVehicleCreator {
 
 		}
 		String fileNameBase = vehiclesFilePrefix + amount + "vehicles-" + seats + "seats";
-		new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz");
+		//new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz");
 
 		writeVehStartPositionsCSV(vehicles, fileNameBase);
 	}

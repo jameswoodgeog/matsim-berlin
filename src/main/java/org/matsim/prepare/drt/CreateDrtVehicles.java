@@ -135,7 +135,7 @@ public class CreateDrtVehicles implements MATSimAppCommand {
 
 		}
 		String fileNameBase = output + "drt-by-rndLocations-%dvehicles-%dseats".formatted(amount, seats);
-		new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz");
+		//new FleetWriter(vehicles.stream()).write(fileNameBase + ".xml.gz", null);
 
 		writeVehStartPositionsCSV(network, vehicles, fileNameBase);
 
