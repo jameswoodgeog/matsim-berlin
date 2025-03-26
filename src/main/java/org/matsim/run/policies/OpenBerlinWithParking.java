@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.matsim.core.mobsim.qsim.qnetsimengine.parking.ParkingCapacityInitializer.LINK_OFF_STREET_SPOTS;
-import static org.matsim.core.mobsim.qsim.qnetsimengine.parking.ParkingCapacityInitializer.LINK_ON_STREET_SPOTS;
+import static org.matsim.core.mobsim.qsim.qnetsimengine.parking.ParkingUtils.LINK_OFF_STREET_SPOTS;
+import static org.matsim.core.mobsim.qsim.qnetsimengine.parking.ParkingUtils.LINK_ON_STREET_SPOTS;
 
 /*
 This class extends the matsim berlin scenario by parking functionality
