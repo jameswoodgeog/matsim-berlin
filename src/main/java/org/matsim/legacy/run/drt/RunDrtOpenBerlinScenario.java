@@ -19,9 +19,7 @@
 
 package org.matsim.legacy.run.drt;
 
-import java.util.HashSet;
-import java.util.Set;
-
+import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import com.google.inject.Singleton;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -52,16 +50,17 @@ import org.matsim.legacy.run.BerlinExperimentalConfigGroup;
 import org.matsim.legacy.run.RunBerlinScenario;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-
-import ch.sbb.matsim.config.SwissRailRaptorConfigGroup;
 import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
+
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * This class starts a simulation run with DRT.
- *
- *  - The input DRT vehicles file specifies the number of vehicles and the vehicle capacity (a vehicle capacity of 1 means there is no ride-sharing).
- * 	- The DRT service area is set to the the inner-city Berlin area (see input shape file).
- * 	- Initial plans only modified such that persons receive a specific income.
+ * <p>
+ * - The input DRT vehicles file specifies the number of vehicles and the vehicle capacity (a vehicle capacity of 1 means there is no ride-sharing).
+ * - The DRT service area is set to the the inner-city Berlin area (see input shape file).
+ * - Initial plans only modified such that persons receive a specific income.
  *
  * @author ikaddoura
  */
@@ -76,22 +75,22 @@ public final class RunDrtOpenBerlinScenario {
 	public static void main(String[] args) throws CommandLine.ConfigurationException {
 
 		for (String arg : args) {
-			log.info( arg );
+			log.info(arg);
 		}
 
-		if ( args.length==0 ) {
-			args = new String[] {"scenarios/berlin-v5.5-1pct/input/drt/berlin-drt-v5.5-1pct.config.xml"}  ;
+		if (args.length == 0) {
+			args = new String[]{"scenarios/berlin-v5.5-1pct/input/drt/berlin-drt-v5.5-1pct.config.xml"};
 		}
 
-		Config config = prepareConfig( args ) ;
-		Scenario scenario = prepareScenario( config ) ;
-		Controler controler = prepareControler( scenario ) ;
-		controler.run() ;
+		Config config = prepareConfig(args);
+		Scenario scenario = prepareScenario(config);
+		Controler controler = prepareControler(scenario);
+		controler.run();
 	}
 
-	public static Controler prepareControler( Scenario scenario ) {
+	public static Controler prepareControler(Scenario scenario) {
 
-		Controler controler = RunBerlinScenario.prepareControler( scenario ) ;
+		Controler controler = RunBerlinScenario.prepareControler(scenario);
 
 		// drt + dvrp module
 		controler.addOverridingModule(new MultiModeDrtModule());
@@ -116,44 +115,44 @@ public final class RunDrtOpenBerlinScenario {
 		return controler;
 	}
 
-	public static Scenario prepareScenario( Config config ) {
+	public static Scenario prepareScenario(Config config) {
 
-		Scenario scenario = RunBerlinScenario.prepareScenario( config );
+		Scenario scenario = RunBerlinScenario.prepareScenario(config);
 		BerlinExperimentalConfigGroup berlinCfg = ConfigUtils.addOrGetModule(config, BerlinExperimentalConfigGroup.class);
 
 		for (DrtConfigGroup drtCfg : MultiModeDrtConfigGroup.get(config).getModalElements()) {
 
-			String drtServiceAreaShapeFile = drtCfg.drtServiceAreaShapeFile;
+			String drtServiceAreaShapeFile = drtCfg.getDrtServiceAreaShapeFile();
 			if (drtServiceAreaShapeFile != null && !drtServiceAreaShapeFile.equals("") && !drtServiceAreaShapeFile.equals("null")) {
 
 				// Michal says restricting drt to a drt network roughly the size of the service area helps to speed up.
 				// This is even more true since drt started to route on a freespeed TT matrix (Nov '20).
 				// A buffer of 10km to the service area Berlin includes the A10 on some useful stretches outside Berlin.
-				if(berlinCfg.getTagDrtLinksBufferAroundServiceAreaShp() >= 0.0) {
+				if (berlinCfg.getTagDrtLinksBufferAroundServiceAreaShp() >= 0.0) {
 					addDRTmode(scenario, drtCfg.getMode(), drtServiceAreaShapeFile, berlinCfg.getTagDrtLinksBufferAroundServiceAreaShp());
 				}
 
 				tagTransitStopsInServiceArea(scenario.getTransitSchedule(),
-						DRT_ACCESS_EGRESS_TO_PT_STOP_FILTER_ATTRIBUTE, DRT_ACCESS_EGRESS_TO_PT_STOP_FILTER_VALUE,
-						drtServiceAreaShapeFile,
-						"stopFilter", "station_S/U/RE/RB",
-						// some S+U stations are located slightly outside the shp File, e.g. U7 Neukoelln, U8
-						// Hermannstr., so allow buffer around the shape.
-						// This does not mean that a drt vehicle can pick the passenger up outside the service area,
-						// rather the passenger has to walk the last few meters from the drt drop off to the station.
-						200.0); // TODO: Use constant in RunGTFS2MATSimOpenBerlin and here? Or better some kind of set available pt modes?
+					DRT_ACCESS_EGRESS_TO_PT_STOP_FILTER_ATTRIBUTE, DRT_ACCESS_EGRESS_TO_PT_STOP_FILTER_VALUE,
+					drtServiceAreaShapeFile,
+					"stopFilter", "station_S/U/RE/RB",
+					// some S+U stations are located slightly outside the shp File, e.g. U7 Neukoelln, U8
+					// Hermannstr., so allow buffer around the shape.
+					// This does not mean that a drt vehicle can pick the passenger up outside the service area,
+					// rather the passenger has to walk the last few meters from the drt drop off to the station.
+					200.0); // TODO: Use constant in RunGTFS2MATSimOpenBerlin and here? Or better some kind of set available pt modes?
 			}
 		}
 
 		return scenario;
 	}
 
-	public enum AdditionalInformation { none, acceptUnknownParamsBerlinConfig }
+	public enum AdditionalInformation {none, acceptUnknownParamsBerlinConfig}
 
-	public static Config prepareConfig( AdditionalInformation additionalInformation, String [] args, ConfigGroup... customModules) {
-		ConfigGroup[] customModulesToAdd = new ConfigGroup[] { new DvrpConfigGroup(), new MultiModeDrtConfigGroup(),
-				new SwissRailRaptorConfigGroup(), new IntermodalTripFareCompensatorsConfigGroup(),
-				new PtIntermodalRoutingModesConfigGroup() };
+	public static Config prepareConfig(AdditionalInformation additionalInformation, String[] args, ConfigGroup... customModules) {
+		ConfigGroup[] customModulesToAdd = new ConfigGroup[]{new DvrpConfigGroup(), new MultiModeDrtConfigGroup(),
+			new SwissRailRaptorConfigGroup(), new IntermodalTripFareCompensatorsConfigGroup(),
+			new PtIntermodalRoutingModesConfigGroup()};
 		ConfigGroup[] customModulesAll = new ConfigGroup[customModules.length + customModulesToAdd.length];
 
 		int counter = 0;
@@ -167,21 +166,22 @@ public final class RunDrtOpenBerlinScenario {
 			counter++;
 		}
 
-		Config config = RunBerlinScenario.prepareConfig( additionalInformation, args, customModulesAll ) ;
+		Config config = RunBerlinScenario.prepareConfig(additionalInformation, args, customModulesAll);
 
 		DrtConfigs.adjustMultiModeDrtConfig(MultiModeDrtConfigGroup.get(config), config.scoring(), config.routing());
 
-		return config ;
+		return config;
 	}
-	public static Config prepareConfig( String [] args, ConfigGroup... customModules) {
-		return prepareConfig( AdditionalInformation.none, args, customModules ) ;
+
+	public static Config prepareConfig(String[] args, ConfigGroup... customModules) {
+		return prepareConfig(AdditionalInformation.none, args, customModules);
 	}
 
 	public static void addDRTmode(Scenario scenario, String drtNetworkMode, String drtServiceAreaShapeFile, double buffer) {
 
 		log.info("Adjusting network...");
 
-		BerlinShpUtils shpUtils = new BerlinShpUtils( drtServiceAreaShapeFile );
+		BerlinShpUtils shpUtils = new BerlinShpUtils(drtServiceAreaShapeFile);
 
 		int counter = 0;
 		int counterInside = 0;
@@ -192,7 +192,7 @@ public final class RunDrtOpenBerlinScenario {
 			counter++;
 			if (link.getAllowedModes().contains(TransportMode.car)) {
 				if (shpUtils.isCoordInDrtServiceAreaWithBuffer(link.getFromNode().getCoord(), buffer)
-						|| shpUtils.isCoordInDrtServiceAreaWithBuffer(link.getToNode().getCoord(), buffer)) {
+					|| shpUtils.isCoordInDrtServiceAreaWithBuffer(link.getToNode().getCoord(), buffer)) {
 					Set<String> allowedModes = new HashSet<>(link.getAllowedModes());
 
 					allowedModes.add(drtNetworkMode);
@@ -216,13 +216,13 @@ public final class RunDrtOpenBerlinScenario {
 	}
 
 	private static void tagTransitStopsInServiceArea(TransitSchedule transitSchedule,
-			String newAttributeName, String newAttributeValue,
-			String drtServiceAreaShapeFile,
-			String oldFilterAttribute, String oldFilterValue,
-			double bufferAroundServiceArea) {
+													 String newAttributeName, String newAttributeValue,
+													 String drtServiceAreaShapeFile,
+													 String oldFilterAttribute, String oldFilterValue,
+													 double bufferAroundServiceArea) {
 		log.info("Tagging pt stops marked for intermodal access/egress in the service area.");
-		BerlinShpUtils shpUtils = new BerlinShpUtils( drtServiceAreaShapeFile );
-		for (TransitStopFacility stop: transitSchedule.getFacilities().values()) {
+		BerlinShpUtils shpUtils = new BerlinShpUtils(drtServiceAreaShapeFile);
+		for (TransitStopFacility stop : transitSchedule.getFacilities().values()) {
 			if (stop.getAttributes().getAttribute(oldFilterAttribute) != null) {
 				if (stop.getAttributes().getAttribute(oldFilterAttribute).equals(oldFilterValue)) {
 					if (shpUtils.isCoordInDrtServiceAreaWithBuffer(stop.getCoord(), bufferAroundServiceArea)) {
