@@ -14,7 +14,7 @@ public class ParkingDashboard implements Dashboard {
 		header.title = "Parking";
 		header.description = "Parking analysis";
 
-		layout.row("dist-dist").el(Plotly.class, (viz, data) -> {
+		layout.row("parking-distribution").el(Plotly.class, (viz, data) -> {
 
 			viz.title = "Parking search time distribution";
 			viz.layout = tech.tablesaw.plotly.components.Layout.builder()
@@ -33,6 +33,29 @@ public class ParkingDashboard implements Dashboard {
 				ds.mapping()
 					.x("search_time")
 					.y("density")
+			);
+
+		});
+
+		layout.row("parking-distribution").el(Plotly.class, (viz, data) -> {
+
+			viz.title = "Parking capacity vs. initially used";
+			viz.layout = tech.tablesaw.plotly.components.Layout.builder()
+				.xAxis(Axis.builder().title("# capacity").build())
+				.yAxis(Axis.builder().title("# initially occupied").build())
+				.showLegend(false)
+				.build();
+
+			viz.colorRamp = ColorScheme.Viridis;
+
+			Plotly.DataSet ds = viz.addDataset(data.output("(*.)?parking_initial_occupancy.csv"));
+
+			viz.addTrace(ScatterTrace.builder(Plotly.INPUT, Plotly.INPUT)
+					.mode(ScatterTrace.Mode.MARKERS)
+					.build(),
+				ds.mapping()
+					.x("capacity")
+					.y("occupancy")
 			);
 
 		});
