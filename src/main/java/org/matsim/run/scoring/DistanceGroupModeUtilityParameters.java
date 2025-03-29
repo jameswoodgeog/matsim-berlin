@@ -7,6 +7,7 @@ import org.matsim.core.scoring.functions.ModeUtilityParameters;
 /**
  * Mode utility with separate marginalUtilityOfDistance_m per distance group.
  */
+@SuppressWarnings("checkstyle:MemberName")
 public class DistanceGroupModeUtilityParameters extends ModeUtilityParameters {
 
 	private final DistanceGroup[] groups;

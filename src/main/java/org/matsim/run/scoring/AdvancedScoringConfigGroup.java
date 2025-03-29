@@ -9,7 +9,7 @@ import java.util.*;
 /**
  * Stores scoring parameters for {@link AdvancedScoringModule}.
  */
-@SuppressWarnings("checkstyle:VisibilityModifier")
+@SuppressWarnings({"checkstyle:VisibilityModifier", "checkstyle:MemberName"})
 public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 
 	private static final String GROUP_NAME = "advancedScoring";
