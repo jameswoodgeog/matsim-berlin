@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import os
-
-import numpy as np
 import biogeme.biogeme as bio
 import biogeme.database as db
 import biogeme.models as models
-from biogeme.expressions import Beta, bioDraws, log, MonteCarlo
+import numpy as np
+import os
+from biogeme.expressions import Beta, bioDraws, log, exp, MonteCarlo
 
 from prepare import read_plan_choices, tn_generator, gumbel_generator
 
@@ -19,22 +18,28 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Estimate choice model for daily trip usage")
     parser.add_argument("--input", help="Path to the input file", type=str,
                         default="../../../plan-choices-subtour_70.csv")
+    parser.add_argument("--name", help="Model name prefix in the output", type=str, default="")
     parser.add_argument("--mxl-modes", help="Modes to use mixed logit for", nargs="+", type=str,
                         default=["pt", "bike", "ride", "car"])
-    parser.add_argument("--no-mxl", help="Disable mixed logit", action="store_true")
+    parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
+                        choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "TN", "TN_SCALE", "NORMAL_SCALE"])
+    parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
+                        choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
-    parser.add_argument("--performing", help="Beta for performing", type=float, default=6.88)
+    parser.add_argument("--performing", help="Beta for performing", type=float, default=5)
     parser.add_argument("--est-exp-income", help="Estimate exponent for income", action="store_true")
     parser.add_argument("--exp-income", help="Exponent for income", type=float, default=1)
     parser.add_argument("--util-money", help="Utility of money", type=float, default=1)
     parser.add_argument("--est-bus-legs", help="Estimate the beta for Bus legs", action="store_true")
     parser.add_argument("--est-pt-switches", help="Estimate beta for number of pt switches", action="store_true")
     parser.add_argument("--est-util-money", help="Estimate utility of money", action="store_true")
-    parser.add_argument("--est-error-component", help="Add a normal error component to each trip choice", action="store_true")
+    parser.add_argument("--est-error-component", help="Add a normal error component to each trip choice",
+                        action="store_true")
     parser.add_argument("--ec", help="Factor for error component", type=float, default=None)
     parser.add_argument("--est-price-perception-car", help="Estimate price perception", action="store_true")
     parser.add_argument("--est-price-perception-pt", help="Estimate price perception", action="store_true")
-    parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor", action="store_true")
+    parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor",
+                        action="store_true")
     parser.add_argument("--price-perception", help="Given value for fixed price perception", type=float, default=1)
     parser.add_argument("--effort", help="Additional time utility", nargs="+", action='append', default=[])
     parser.add_argument("--ascs", help="Predefined ASCs", nargs="+", action='append', default=[])
@@ -59,6 +64,29 @@ if __name__ == "__main__":
         "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit")
     })
 
+
+    def bio_draws(name, B):
+        """ Helper function to draw from configured distribution """
+
+        lower = None
+        # Scale must be positive for these distributions
+        if args.mxl_distribution in ("LOG_NORMAL", "TN_SCALE"):
+            lower = 0
+
+        sd = Beta(name + "_s", 1, lower, None, ESTIMATE)
+
+        if args.mxl_distribution == "LOG_NORMAL":
+            return exp(B + sd * bioDraws(name + "_rnd", "NORMAL"))
+        elif args.mxl_distribution == "TN_SCALE":
+            # TN_SCALE is truncated normal without bias
+            return sd * bioDraws(name + "_rnd", "TN")
+        elif args.mxl_distribution == "NORMAL_SCALE":
+            # NORMAL_SCALE is normal without bias
+            return sd * bioDraws(name + "_rnd", "NORMAL_ANTI")
+
+        return B + sd * bioDraws(name + "_rnd", args.mxl_distribution)
+
+
     fixed_ascs = {x: float(y) for x, y in args.ascs}
     if fixed_ascs:
         print("Using fixed ascs", fixed_ascs)
@@ -68,15 +96,20 @@ if __name__ == "__main__":
         # Nan values are estimated
         for mode in effort:
             if np.isnan(effort[mode]):
-                effort[mode] = Beta(f"BETA_DIST_{mode}", 0, None, None, ESTIMATE)
+                effort[mode] = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
 
         print("Using time effort", effort)
 
+    for mode in ds.modes:
+        if args.mxl_param == "tt_hours" and mode not in effort and mode in args.mxl_modes:
+            b = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
+            effort[mode] = bio_draws(f"BETA_TT_{mode}", b)
+
+    print("Using distribution", args.mxl_distribution)
+    print("Using MXL param", args.mxl_param)
+
     # Variables for constants
     ASC = {}
-
-    # Variables for variation
-    SD = {}
 
     # Factor on marginal utility of money
     EXP_INCOME = Beta('EXP_INCOME', args.exp_income, 0, 1.5, ESTIMATE if args.est_exp_income else FIXED)
@@ -84,12 +117,14 @@ if __name__ == "__main__":
     UTIL_MONEY = Beta('UTIL_MONEY', args.util_money, 0.2, 1.5, ESTIMATE if args.est_util_money else FIXED)
 
     BETA_PERFORMING = Beta('BETA_PERFORMING', args.performing, 1, 15, ESTIMATE if args.est_performing else FIXED)
-    BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', args.price_perception, 0, 1, ESTIMATE if args.est_price_perception_car else FIXED)
+    BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', args.price_perception, 0, 1,
+                                     ESTIMATE if args.est_price_perception_car else FIXED)
 
     if args.same_price_perception:
         BETA_PT_PRICE_PERCEPTION = BETA_CAR_PRICE_PERCEPTION
     else:
-        BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', args.price_perception, 0, 1, ESTIMATE if args.est_price_perception_pt else FIXED)
+        BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', args.price_perception, 0, 1,
+                                        ESTIMATE if args.est_price_perception_pt else FIXED)
 
     BETA_BUS_LEGS = Beta('BETA_BUS_LEGS', 0, None, 0, ESTIMATE if args.est_bus_legs else FIXED)
     BETA_PT_SWITCHES = Beta('BETA_PT_SWITCHES', -1, None, 0, ESTIMATE if args.est_pt_switches else FIXED)
@@ -104,13 +139,10 @@ if __name__ == "__main__":
         # Base asc
         asc = Beta(f"ASC_{mode}", val, None, None, status)
 
-        # Pt does not have its own random parameter
-        if mode not in args.mxl_modes or args.no_mxl:
-            ASC[mode] = asc
+        if mode in args.mxl_modes and args.mxl_param == "constant":
+            ASC[mode] = bio_draws(f"ASC_{mode}", asc)
         else:
-            # The random parameter
-            SD[mode] = Beta(f"ASC_{mode}_s", 1, None, None, ESTIMATE)
-            ASC[mode] = asc + SD[mode] * bioDraws(f"{mode}_RND", "NORMAL_ANTI")
+            ASC[mode] = asc
 
     if args.car_util is not None:
         print("Using fixed utility for car", args.car_util)
@@ -118,11 +150,10 @@ if __name__ == "__main__":
     B_UTIL = Beta('B_CAR_UTIL', 8 if args.car_util is None else args.car_util,
                   0, None, ESTIMATE if args.car_util is None else FIXED)
 
-    if args.no_mxl:
-        B_CAR = B_UTIL
+    if args.mxl_param == "car_util":
+        B_CAR = bio_draws('B_CAR_UTIL_RND', B_UTIL)
     else:
-        B_UTIL_S = Beta('B_CAR_UTIL_SD', 1, 0, None, ESTIMATE)
-        B_CAR = B_UTIL + B_UTIL_S * bioDraws('B_CAR_UTIL_RND', 'TN')
+        B_CAR = B_UTIL
 
     # Use asc instead of car utility
     if is_est_car:
@@ -180,17 +211,20 @@ if __name__ == "__main__":
         U[i] = u
         AV[i] = v[f"plan_{i}_valid"]
 
-    if args.no_mxl:
+    if args.mxl_param == "none":
         logprob = models.loglogit(U, AV, v["choice"])
     else:
         prob = models.logit(U, AV, v["choice"])
         logprob = log(MonteCarlo(prob))
 
-
     logprob = {'loglike': logprob, 'weight': v["weight"]}
     biogeme = bio.BIOGEME(database, logprob)
 
-    modelName = os.path.basename(args.input).replace(".csv", "")
+    modelName = os.path.basename(args.input).replace(".csv", "") + ("_" if args.name else "") + args.name
+
+    modelName += f"_{args.mxl_distribution}"
+    modelName += f"_{args.mxl_param}"
+
     if args.est_performing:
         modelName += "_performing"
     if args.est_exp_income:

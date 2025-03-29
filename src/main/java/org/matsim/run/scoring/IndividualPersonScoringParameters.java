@@ -280,6 +280,11 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 					existing.put(mode.getKey() + "_dailyConstant", delta.dailyUtilityConstant);
 				}
 
+				if (delta.marginalUtilityOfTraveling_util_hr != 0) {
+					values.put(mode.getKey() + "_marginalUtilityOfTraveling_util_hr", p.marginalUtilityOfTraveling_s * 3600);
+					existing.put(mode.getKey() + "_marginalUtilityOfTraveling_util_hr", delta.marginalUtilityOfTraveling_util_hr);
+				}
+
 				if (groups != null) {
 					for (DistanceGroup group : groups) {
 						values.put("%s_dist_%.0f".formatted(mode.getKey(), group.dist()), group.utilPerM());
@@ -321,6 +326,9 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 
 		if (existing.containsKey(mode + "_dailyConstant"))
 			delta.dailyUtilityConstant = existing.getDouble(mode + "_dailyConstant");
+
+		if (existing.containsKey(mode + "_marginalUtilityOfTraveling_util_hr"))
+			delta.marginalUtilityOfTraveling_util_hr = existing.getDouble(mode + "_marginalUtilityOfTraveling_util_hr");
 	}
 
 	/**
@@ -334,6 +342,7 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 		switch (params.varConstant) {
 			case fixed -> delta.constant += params.deltaConstant;
 			case normal -> delta.constant += normal.sample() * params.deltaConstant;
+			case logNormal -> delta.constant += Math.exp(normal.sample()) * params.deltaConstant;
 			case truncatedNormal -> delta.constant += tn.sample() * params.deltaConstant;
 			default -> throw new IllegalArgumentException("Unsupported varConstant: " + params.varConstant);
 		}
@@ -341,8 +350,17 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 		switch (params.varDailyConstant) {
 			case fixed -> delta.dailyUtilityConstant += params.deltaDailyConstant;
 			case normal -> delta.dailyUtilityConstant += normal.sample() * params.deltaDailyConstant;
+			case logNormal -> delta.dailyUtilityConstant += Math.exp(normal.sample()) * params.deltaDailyConstant;
 			case truncatedNormal -> delta.dailyUtilityConstant += tn.sample() * params.deltaDailyConstant;
 			default -> throw new IllegalArgumentException("Unsupported varDailyConstant: " + params.varDailyConstant);
+		}
+
+		switch (params.varMarginalUtilityOfTraveling_util_hr) {
+			case fixed -> delta.marginalUtilityOfTraveling_util_hr += params.deltaMarginalUtilityOfTraveling_util_hr;
+			case normal -> delta.marginalUtilityOfTraveling_util_hr += normal.sample() * params.deltaMarginalUtilityOfTraveling_util_hr;
+			case logNormal -> delta.marginalUtilityOfTraveling_util_hr += Math.exp(normal.sample()) * params.deltaMarginalUtilityOfTraveling_util_hr;
+			case truncatedNormal -> delta.marginalUtilityOfTraveling_util_hr += tn.sample() * params.deltaMarginalUtilityOfTraveling_util_hr;
+			default -> throw new IllegalArgumentException("Unsupported varDailyConstant: " + params.varMarginalUtilityOfTraveling_util_hr);
 		}
 	}
 

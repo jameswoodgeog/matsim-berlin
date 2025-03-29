@@ -92,7 +92,7 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 	 * Variate values with random draw from specific distribution.
 	 */
 	public enum VariationType {
-		fixed, normal, truncatedNormal, gumbel
+		fixed, normal, logNormal, truncatedNormal, gumbel
 	}
 
 	/**
@@ -215,6 +215,14 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 		@Parameter
 		@Comment("Variation of the daily constant across individuals.")
 		public VariationType varDailyConstant = VariationType.fixed;
+
+		@Parameter
+		@Comment("[utils/hour] for using the mode.")
+		public double deltaMarginalUtilityOfTraveling_util_hr;
+
+		@Parameter
+		@Comment("Variation of the marginal utility of traveling across individuals.")
+		public VariationType varMarginalUtilityOfTraveling_util_hr = VariationType.fixed;
 
 		@Parameter
 		@Comment("Total delta utility per dist group.")

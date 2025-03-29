@@ -72,7 +72,10 @@ def read_plan_choices(input_file: str, sample: float = 1, seed: int = 42) -> Pla
     df_wide['custom_id'] = np.arange(len(df_wide))  # Add unique identifier
     df_wide['choice'] = df_wide['choice'].map({1: "plan_1"})
 
-    df_wide = calc_plan_variables(df_wide, k, modes, False, True)
+    df_wide = calc_plan_variables(df_wide, k, modes)
+
+    # Normalize the weights to sum to 1
+    df_wide['weight'] = df_wide['weight'] / df_wide['weight'].sum()
 
     varying = list(df_wide.columns.str.extract(r"plan_1_([a-zA-z_]+)", expand=False).dropna().unique())
 
@@ -92,19 +95,14 @@ def gumbel_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """
     return gumbel_r.rvs(size=(sample_size, number_of_draws))
 
-def calc_plan_variables(df, k, modes, use_util_money=False, add_util_performing=True):
+def calc_plan_variables(df, k, modes):
     """ Calculate utility and costs variables for all alternatives in the dataframe"""
-
-    util_performing = -6.88
 
     # Normalize activity utilities to be near zero
     # columns = [f"plan_{i}_act_util" for i in range(1, k + 1)]
     # for t in df.itertuples():
     #     utils = df.loc[t.Index, columns]
     #     df.loc[t.Index, columns] -= utils.max()
-
-    # Marginal utility of money as factor
-    util_money = df.util_money if use_util_money else 1
 
     for i in range(1, k + 1):
 
@@ -138,17 +136,6 @@ def calc_plan_variables(df, k, modes, use_util_money=False, add_util_performing=
 
             df[f"plan_{i}_{mode}_used"] = (df[f"plan_{i}_{mode}_usage"] > 0) * 1
             df[f"plan_{i}_tt_hours"] -= df[f"plan_{i}_{mode}_hours"]
-
-            # Add configured time costs
-            df[f"plan_{i}_utils"] += (fixed_costs + distance_costs) * util_money
-
-            if add_util_performing:
-                # Add time costs the overall costs
-                df[f"plan_{i}_utils"] += util_performing * df[f"plan_{i}_{mode}_hours"]
-
-                # Add additional ride time utils for the driver
-                if mode == "ride":
-                    df[f"plan_{i}_utils"] += util_performing * df[f"plan_{i}_{mode}_hours"]
 
         # Defragment df
         df = df.copy()

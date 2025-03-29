@@ -15,7 +15,7 @@ public class DistanceGroupModeUtilityParameters extends ModeUtilityParameters {
 	 * Constructor which copies the base params from given modeParams.
 	 */
 	DistanceGroupModeUtilityParameters(ModeUtilityParameters modeParams, DeltaBuilder delta, DistanceGroup[] groups) {
-		super(modeParams.marginalUtilityOfTraveling_s,
+		super(modeParams.marginalUtilityOfTraveling_s + delta.marginalUtilityOfTraveling_util_hr / 3600,
 			modeParams.marginalUtilityOfDistance_m,
 			modeParams.monetaryDistanceCostRate,
 			modeParams.constant + delta.constant,
@@ -49,6 +49,7 @@ public class DistanceGroupModeUtilityParameters extends ModeUtilityParameters {
 		private final DoubleList perDistGroup = new DoubleArrayList();
 		double constant;
 		double dailyUtilityConstant;
+		double marginalUtilityOfTraveling_util_hr;
 
 		public DoubleList getPerDistGroup() {
 			return perDistGroup;
