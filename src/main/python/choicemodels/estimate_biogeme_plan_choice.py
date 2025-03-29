@@ -9,7 +9,7 @@ import numpy as np
 import os
 from biogeme.expressions import Beta, bioDraws, log, exp, MonteCarlo
 
-from prepare import read_plan_choices, tn_generator, gumbel_generator
+from prepare import read_plan_choices, tn_generator, gumbel_generator, gumbel_zero_generator, tn_s2_generator
 
 ESTIMATE = 0
 FIXED = 1
@@ -22,7 +22,8 @@ if __name__ == "__main__":
     parser.add_argument("--mxl-modes", help="Modes to use mixed logit for", nargs="+", type=str,
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
-                        choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "TN", "TN_SCALE", "NORMAL_SCALE"])
+                        choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE",
+                                 "NORMAL_SCALE", "TN_S2_SCALE"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
@@ -61,7 +62,9 @@ if __name__ == "__main__":
 
     database.setRandomNumberGenerators({
         "TN": (tn_generator, "truncated normal generator for mixed logit"),
-        "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit")
+        "TN_S2": (tn_s2_generator, "truncated normal generator for mixed logit"),
+        "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit"),
+        "GUMBEL_SCALE": (gumbel_zero_generator, "Gumbel generator with zero mean for mixed logit")
     })
 
 
@@ -74,17 +77,23 @@ if __name__ == "__main__":
             lower = 0
 
         sd = Beta(name + "_s", 1, lower, None, ESTIMATE)
+        rnd_name = name + "_rnd"
 
         if args.mxl_distribution == "LOG_NORMAL":
-            return exp(B + sd * bioDraws(name + "_rnd", "NORMAL"))
+            return exp(B + sd * bioDraws(rnd_name, "NORMAL"))
         elif args.mxl_distribution == "TN_SCALE":
             # TN_SCALE is truncated normal without bias
-            return sd * bioDraws(name + "_rnd", "TN")
+            return sd * bioDraws(rnd_name, "TN")
         elif args.mxl_distribution == "NORMAL_SCALE":
             # NORMAL_SCALE is normal without bias
-            return sd * bioDraws(name + "_rnd", "NORMAL_ANTI")
+            return sd * bioDraws(rnd_name, "NORMAL_ANTI")
+        elif args.mxl_distribution == "GUMBEL_SCALE":
+            # this distribution has zero mean
+            return sd * bioDraws(rnd_name, "GUMBEL_SCALE")
+        elif args.mxl_distribution == "TN_S2_SCALE":
+            return sd * bioDraws(rnd_name, "TN_S2")
 
-        return B + sd * bioDraws(name + "_rnd", args.mxl_distribution)
+        return B + sd * bioDraws(rnd_name, args.mxl_distribution)
 
 
     fixed_ascs = {x: float(y) for x, y in args.ascs}

@@ -12,6 +12,7 @@ daily_costs = defaultdict(lambda: 0.0, car=-14.30, pt=-3)
 km_costs = defaultdict(lambda: 0.0, car=-0.149, ride=-0.149)
 
 TN = truncnorm(0, np.inf)
+TN_S2 = truncnorm(-2, 2)
 
 PlanChoice = namedtuple("PlanChoice", ["df", "modes", "varying", "k", "global_income"])
 TripChoice = namedtuple("TripChoice", ["df", "modes", "varying", "global_income"])
@@ -89,11 +90,19 @@ def tn_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """
     return TN.rvs((sample_size, number_of_draws))
 
+def tn_s2_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    """ Truncated normal at 2 standard deviations """
+    return TN_S2.rvs((sample_size, number_of_draws))
+
 def gumbel_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """
     User-defined random number generator for gumbel distribution
     """
     return gumbel_r.rvs(size=(sample_size, number_of_draws))
+
+def gumbel_zero_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    """  Gumbel with zero mean. """
+    return gumbel_r.rvs(loc=-np.euler_gamma, size=(sample_size, number_of_draws))
 
 def calc_plan_variables(df, k, modes):
     """ Calculate utility and costs variables for all alternatives in the dataframe"""

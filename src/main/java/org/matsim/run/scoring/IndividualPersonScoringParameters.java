@@ -11,6 +11,7 @@ import org.apache.commons.rng.RestorableUniformRandomProvider;
 import org.apache.commons.rng.core.RandomProviderDefaultState;
 import org.apache.commons.rng.simple.RandomSource;
 import org.apache.commons.statistics.distribution.ContinuousDistribution;
+import org.apache.commons.statistics.distribution.GumbelDistribution;
 import org.apache.commons.statistics.distribution.NormalDistribution;
 import org.apache.commons.statistics.distribution.TruncatedNormalDistribution;
 import org.apache.logging.log4j.LogManager;
@@ -338,12 +339,14 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 
 		ContinuousDistribution.Sampler normal = ctx.normal.createSampler(ctx.rnd());
 		ContinuousDistribution.Sampler tn = ctx.tn.createSampler(ctx.rnd());
+		ContinuousDistribution.Sampler tn2 = ctx.tn2.createSampler(ctx.rnd());
 
 		switch (params.varConstant) {
 			case fixed -> delta.constant += params.deltaConstant;
 			case normal -> delta.constant += normal.sample() * params.deltaConstant;
 			case logNormal -> delta.constant += Math.exp(normal.sample()) * params.deltaConstant;
 			case truncatedNormal -> delta.constant += tn.sample() * params.deltaConstant;
+			case truncatedNormalS2 -> delta.constant += tn2.sample() * params.deltaConstant;
 			default -> throw new IllegalArgumentException("Unsupported varConstant: " + params.varConstant);
 		}
 
@@ -352,6 +355,7 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 			case normal -> delta.dailyUtilityConstant += normal.sample() * params.deltaDailyConstant;
 			case logNormal -> delta.dailyUtilityConstant += Math.exp(normal.sample()) * params.deltaDailyConstant;
 			case truncatedNormal -> delta.dailyUtilityConstant += tn.sample() * params.deltaDailyConstant;
+			case truncatedNormalS2 -> delta.dailyUtilityConstant += tn2.sample() * params.deltaDailyConstant;
 			default -> throw new IllegalArgumentException("Unsupported varDailyConstant: " + params.varDailyConstant);
 		}
 
@@ -360,6 +364,7 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 			case normal -> delta.marginalUtilityOfTraveling_util_hr += normal.sample() * params.deltaMarginalUtilityOfTraveling_util_hr;
 			case logNormal -> delta.marginalUtilityOfTraveling_util_hr += Math.exp(normal.sample()) * params.deltaMarginalUtilityOfTraveling_util_hr;
 			case truncatedNormal -> delta.marginalUtilityOfTraveling_util_hr += tn.sample() * params.deltaMarginalUtilityOfTraveling_util_hr;
+			case truncatedNormalS2 -> delta.marginalUtilityOfTraveling_util_hr += tn2.sample() * params.deltaMarginalUtilityOfTraveling_util_hr;
 			default -> throw new IllegalArgumentException("Unsupported varDailyConstant: " + params.varMarginalUtilityOfTraveling_util_hr);
 		}
 	}
@@ -367,11 +372,16 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 	/**
 	 * Thread-local context for random number generation. This makes generation thread-safe and consistent independently of threads and order of persons.
 	 */
-	private record Context(NormalDistribution normal, TruncatedNormalDistribution tn, byte[] seed, RestorableUniformRandomProvider rnd) {
+	private record Context(NormalDistribution normal, TruncatedNormalDistribution tn, TruncatedNormalDistribution tn2,
+						   GumbelDistribution gumbel,
+						   byte[] seed, RestorableUniformRandomProvider rnd) {
 
 		Context(byte[] seed) {
 			this(NormalDistribution.of(0, 1),
 				TruncatedNormalDistribution.of(0, 1, 0, Double.POSITIVE_INFINITY),
+				TruncatedNormalDistribution.of(0, 1, -2, 2),
+				// Zero mean gumbel, with euler gamma as location parameter
+				GumbelDistribution.of(-0.5772156649015329, 1),
 				seed,
 				RandomSource.KISS.create());
 		}

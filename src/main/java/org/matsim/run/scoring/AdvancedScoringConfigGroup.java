@@ -92,7 +92,7 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 	 * Variate values with random draw from specific distribution.
 	 */
 	public enum VariationType {
-		fixed, normal, logNormal, truncatedNormal, gumbel
+		fixed, normal, logNormal, truncatedNormal, truncatedNormalS2, gumbel
 	}
 
 	/**
