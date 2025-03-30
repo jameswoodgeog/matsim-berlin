@@ -12,7 +12,9 @@ daily_costs = defaultdict(lambda: 0.0, car=-14.30, pt=-3)
 km_costs = defaultdict(lambda: 0.0, car=-0.149, ride=-0.149)
 
 TN = truncnorm(0, np.inf)
+TN_S1 = truncnorm(-1, 1)
 TN_S2 = truncnorm(-2, 2)
+ZTN_S2 = truncnorm(0, 2)
 
 PlanChoice = namedtuple("PlanChoice", ["df", "modes", "varying", "k", "global_income"])
 TripChoice = namedtuple("TripChoice", ["df", "modes", "varying", "global_income"])
@@ -93,6 +95,14 @@ def tn_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
 def tn_s2_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """ Truncated normal at 2 standard deviations """
     return TN_S2.rvs((sample_size, number_of_draws))
+
+def tn_s1_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    """ Truncated normal within [-1, 1] """
+    return TN_S1.rvs((sample_size, number_of_draws))
+
+def ztn_s2_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    """ Truncated normal within [0, 2] """
+    return ZTN_S2.rvs((sample_size, number_of_draws))
 
 def gumbel_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """

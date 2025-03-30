@@ -1,6 +1,5 @@
 package org.matsim.run.scoring;
 
-import com.google.common.base.Joiner;
 import com.google.common.primitives.Longs;
 import com.google.inject.Inject;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
@@ -239,14 +238,9 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 				}
 			}
 
-			Object attr = person.getAttributes().getAttribute("utilDelta");
-			Object2DoubleMap<String> existing = new Object2DoubleOpenHashMap<>();
-			if (attr instanceof String s) {
-				String[] split = s.split("\\|");
-				for (String s1 : split) {
-					String[] split1 = s1.split("=");
-					existing.put(split1[0], Double.parseDouble(split1[1]));
-				}
+			Map<String, Map<ModeUtilityParameters.Type, Double>> modeTasteVariations = PersonUtils.getModeTasteVariations(person);
+			if (modeTasteVariations == null) {
+				modeTasteVariations = new LinkedHashMap<>();
 			}
 
 			for (Map.Entry<String, DistanceGroupModeUtilityParameters.DeltaBuilder> mode : deltaParams.entrySet()) {
@@ -261,8 +255,8 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 				// These arrays are re-used if possible
 				DistanceGroup[] groups = distGroups.computeIfAbsent(delta.getPerDistGroup(), k -> calcDistanceGroups(scoring.distGroups, k));
 
-				// This may overwrite the preferences with the one stored
-				loadPreferences(mode.getKey(), delta, person, existing);
+				// This may overwrite the preferences with the ones stored
+				loadPreferences(mode.getKey(), delta, person, modeTasteVariations);
 
 				DistanceGroupModeUtilityParameters p = new DistanceGroupModeUtilityParameters(params, delta, groups);
 				builder.setModeParameters(mode.getKey(), p);
@@ -273,17 +267,20 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 				// Write the overall constants, but only if they are different to the base values
 				if (delta.constant != 0) {
 					values.put(mode.getKey() + "_constant", p.constant);
-					existing.put(mode.getKey() + "_constant", delta.constant);
+					modeTasteVariations.computeIfAbsent(mode.getKey(), (k) -> new LinkedHashMap<>())
+						.put(ModeUtilityParameters.Type.constant, delta.constant);
 				}
 
 				if (delta.dailyUtilityConstant != 0) {
 					values.put(mode.getKey() + "_dailyConstant", p.dailyUtilityConstant);
-					existing.put(mode.getKey() + "_dailyConstant", delta.dailyUtilityConstant);
+					modeTasteVariations.computeIfAbsent(mode.getKey(), (k) -> new LinkedHashMap<>())
+						.put(ModeUtilityParameters.Type.dailyUtilityConstant, delta.dailyUtilityConstant);
 				}
 
 				if (delta.marginalUtilityOfTraveling_util_hr != 0) {
 					values.put(mode.getKey() + "_marginalUtilityOfTraveling_util_hr", p.marginalUtilityOfTraveling_s * 3600);
-					existing.put(mode.getKey() + "_marginalUtilityOfTraveling_util_hr", delta.marginalUtilityOfTraveling_util_hr);
+					modeTasteVariations.computeIfAbsent(mode.getKey(), (k) -> new LinkedHashMap<>())
+						.put(ModeUtilityParameters.Type.marginalUtilityOfTraveling_s, delta.marginalUtilityOfTraveling_util_hr / 3600);
 				}
 
 				if (groups != null) {
@@ -295,16 +292,15 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 				header.addAll(values.keySet());
 			}
 
-			if (!existing.isEmpty()) {
-				Joiner.MapJoiner mapJoiner = Joiner.on("|").withKeyValueSeparator("=");
-				person.getAttributes().putAttribute("utilDelta", mapJoiner.join(existing));
+			if (!modeTasteVariations.isEmpty()) {
+				PersonUtils.setModeTasteVariations(person, modeTasteVariations);
 			}
 
 			return builder.build();
 		});
 	}
 
-	private void loadPreferences(String mode, DistanceGroupModeUtilityParameters.DeltaBuilder delta, Person person, Object2DoubleMap<String> existing) {
+	private void loadPreferences(String mode, DistanceGroupModeUtilityParameters.DeltaBuilder delta, Person person, Map<String, Map<ModeUtilityParameters.Type, Double>> modeTasteVariations) {
 
 		boolean isRefPerson = person.getAttributes().getAttribute(TripAnalysis.ATTR_REF_ID) != null;
 
@@ -313,23 +309,17 @@ public class IndividualPersonScoringParameters implements ScoringParametersForPe
 			return;
 		}
 
-		// Else, require that the attributes are present
-		if (!existing.containsKey(mode + "_constant") && scoring.loadPreferences == AdvancedScoringConfigGroup.LoadPreferences.requireAttribute) {
-			throw new IllegalArgumentException("Person " + person.getId() + " does not have attribute " + mode + "_constant");
-		}
-		if (!existing.containsKey(mode + "_dailyConstant") && scoring.loadPreferences == AdvancedScoringConfigGroup.LoadPreferences.requireAttribute) {
-			throw new IllegalArgumentException("Person " + person.getId() + " does not have attribute " + mode + "_dailyConstant");
-		}
+		Map<ModeUtilityParameters.Type, Double> existing = modeTasteVariations.get(mode);
 
 		// Use attributes if they are present
-		if (existing.containsKey(mode + "_constant"))
-			delta.constant = existing.getDouble(mode + "_constant") ;
+		if (existing.containsKey(ModeUtilityParameters.Type.constant))
+			delta.constant = existing.get(ModeUtilityParameters.Type.constant);
 
-		if (existing.containsKey(mode + "_dailyConstant"))
-			delta.dailyUtilityConstant = existing.getDouble(mode + "_dailyConstant");
+		if (existing.containsKey(ModeUtilityParameters.Type.dailyUtilityConstant))
+			delta.dailyUtilityConstant = existing.get(ModeUtilityParameters.Type.dailyUtilityConstant);
 
-		if (existing.containsKey(mode + "_marginalUtilityOfTraveling_util_hr"))
-			delta.marginalUtilityOfTraveling_util_hr = existing.getDouble(mode + "_marginalUtilityOfTraveling_util_hr");
+		if (existing.containsKey(ModeUtilityParameters.Type.marginalUtilityOfTraveling_s))
+			delta.marginalUtilityOfTraveling_util_hr = existing.get(ModeUtilityParameters.Type.marginalUtilityOfTraveling_s) * 3600;
 	}
 
 	/**

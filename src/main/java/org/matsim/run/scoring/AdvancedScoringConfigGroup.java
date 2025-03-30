@@ -83,7 +83,6 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 	 */
 	public enum LoadPreferences {
 		none,
-		requireAttribute,
 		skipMissing,
 		skipRefPersons
 	}

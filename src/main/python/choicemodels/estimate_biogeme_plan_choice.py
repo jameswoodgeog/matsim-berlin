@@ -9,7 +9,8 @@ import numpy as np
 import os
 from biogeme.expressions import Beta, bioDraws, log, exp, MonteCarlo
 
-from prepare import read_plan_choices, tn_generator, gumbel_generator, gumbel_zero_generator, tn_s2_generator
+from prepare import read_plan_choices, tn_generator, gumbel_generator, gumbel_zero_generator
+from prepare import tn_s1_generator, tn_s2_generator, ztn_s2_generator
 
 ESTIMATE = 0
 FIXED = 1
@@ -23,7 +24,7 @@ if __name__ == "__main__":
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
                         choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE",
-                                 "NORMAL_SCALE", "TN_S2_SCALE"])
+                                 "NORMAL_SCALE", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
@@ -61,8 +62,10 @@ if __name__ == "__main__":
     v = database.variables
 
     database.setRandomNumberGenerators({
-        "TN": (tn_generator, "truncated normal generator for mixed logit"),
-        "TN_S2": (tn_s2_generator, "truncated normal generator for mixed logit"),
+        "TN": (tn_generator, "truncated normal [0, inf]"),
+        "TN_S2": (tn_s2_generator, "truncated normal [-2, 2]"),
+        "TN_S1": (tn_s1_generator, "truncated normal [-1, 1]"),
+        "ZTN_S2": (ztn_s2_generator, "truncated normal [0, 2]"),
         "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit"),
         "GUMBEL_SCALE": (gumbel_zero_generator, "Gumbel generator with zero mean for mixed logit")
     })
@@ -72,11 +75,17 @@ if __name__ == "__main__":
         """ Helper function to draw from configured distribution """
 
         lower = None
+        higher = None
         # Scale must be positive for these distributions
-        if args.mxl_distribution in ("LOG_NORMAL", "TN_SCALE"):
+        if args.mxl_distribution in ("LOG_NORMAL", "TN_SCALE", "ZTN_S2"):
             lower = 0
 
-        sd = Beta(name + "_s", 1, lower, None, ESTIMATE)
+        # Ensure that drawn values never exceed the performing value
+        if args.mxl_distribution == "TN_S1_SCALE":
+            lower = -args.performing
+            higher = args.performing
+
+        sd = Beta(name + "_s", 1, lower, higher, ESTIMATE)
         rnd_name = name + "_rnd"
 
         if args.mxl_distribution == "LOG_NORMAL":
@@ -92,6 +101,8 @@ if __name__ == "__main__":
             return sd * bioDraws(rnd_name, "GUMBEL_SCALE")
         elif args.mxl_distribution == "TN_S2_SCALE":
             return sd * bioDraws(rnd_name, "TN_S2")
+        elif args.mxl_distribution == "TN_S1_SCALE":
+            return sd * bioDraws(rnd_name, "TN_S1")
 
         return B + sd * bioDraws(rnd_name, args.mxl_distribution)
 
