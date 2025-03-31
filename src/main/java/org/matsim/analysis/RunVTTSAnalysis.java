@@ -7,6 +7,7 @@ import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ScoringConfigGroup;
+import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.collections.Tuple;
@@ -82,6 +83,7 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		config.counts().setInputFile(null);
 		config.vehicles().setVehiclesFile(null);
 		config.vspExperimental().setAbleToOverwritePtInteractionParams(true);
+		config.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.overwriteExistingFiles);
 
 		// Sets the typical durations of all activities, that should be ignored, to 0.1. This allows to use configs with interaction-acts-scoring-params.
 		// The value itself will never be used by the VTTSHandler.
@@ -108,12 +110,7 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		for(String mode : modes.split(";")){
 			handler.printVTTS(outPath + "VTTS_" + mode + ".csv", mode);
 		}
-		for(String stat : statistics.split(";")) {
-			handler.printVTTSstatistics(
-				outPath + "VTTSstatistics_" + stat.split(",")[0] + ".csv",
-				stat.split(",")[0],
-				new Tuple<>(Double.parseDouble(stat.split(",")[1]), Double.parseDouble(stat.split(",")[2])));
-		}
+
 
 		return 0;
 	}
