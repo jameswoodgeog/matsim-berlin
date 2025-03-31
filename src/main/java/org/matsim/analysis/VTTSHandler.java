@@ -376,11 +376,10 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 			//Only print 10 log warnings to prevent spam
 			if (incompletedPlanWarning <= 10) {
-/*
+
 				log.warn("Agent " + personId + " has not yet completed the plan/trip (the agent is probably stucking). Cannot compute the disutility of being late at this activity. "
 						+ "Something like the disutility of not arriving at the activity is required. Try to avoid this by setting a smaller stuck time period.");
-				log.warn("Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().planCalcScore().getPerforming_utils_hr());
-*/
+				log.warn("Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().scoring().getPerforming_utils_hr());
 
 				if (incompletedPlanWarning == 10) {
 						log.warn(Gbl.FUTURE_SUPPRESSED);
@@ -398,10 +397,8 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		if (this.scenario.getConfig().scoring().getModes().get(mode) != null) {
 			marginalUtilityOfTraveling = this.scenario.getConfig().scoring().getModes().get(mode).getMarginalUtilityOfTraveling();
 		} else {
-/*
 			log.warn("Could not identify the marginal utility of traveling for mode " + mode + ". "
 					+ "Setting this value to zero. (Probably using subpopulations...)");
-*/
 		}
 		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
 
@@ -561,6 +558,8 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	 * @param mode
 	 */
 	public void printVTTS(String fileName, String mode) {
+
+
 
 		File file = new File(fileName);
 

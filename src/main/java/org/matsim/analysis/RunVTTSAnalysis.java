@@ -51,37 +51,18 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 
 	@Override
 	public Integer call() throws Exception {
-		/* Debug:
-		--config ../VTTS/000.output_config_vtts.xml
-		--plans ../VTTS/000.output_plans.xml.gz
-		--events ../VTTS/000.output_events.xml.gz
-		--out ../VTTS/
-		--modes bike,pt
-		--statistics bike,0,10000
-		--ignoredModes walk
-		--ignoredActs interaction
-		--incomeDependantScoring
-		 */
-		System.out.println(configPath);
-		System.out.println(plansPath);
-		System.out.println(eventsPath);
-		System.out.println(outPath);
-		System.out.println(modes);
-		System.out.println(statistics);
-		System.out.println(snzScoring);
-		System.out.println(ignoredModes);
-		System.out.println(ignoredActs);
-		System.out.println(incomeDependantScoring);
 
 		Config config = ConfigUtils.loadConfig(configPath);
 		config.plans().setInputFile(plansPath);
 		config.global().setNumberOfThreads(16);
+		/*
 		config.network().setInputFile(null);
 		config.facilities().setInputFile(null);
 		config.transit().setTransitScheduleFile(null);
 		config.transit().setVehiclesFile(null);
 		config.counts().setInputFile(null);
-		config.vehicles().setVehiclesFile(null);
+		*/
+		config.vehicles().setVehiclesFile("/Users/gregorr/Documents/work/respos/git/matsim-berlin/input/v6.2/berlin-v6.2-vehicleTypes.xml");
 		config.vspExperimental().setAbleToOverwritePtInteractionParams(true);
 		config.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.overwriteExistingFiles);
 
@@ -95,9 +76,9 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 
 		if(snzScoring) SnzActivities.addScoringParams(config);
 
-		Scenario ruhrScenario = ScenarioUtils.loadScenario(config);
+		Scenario scenario = ScenarioUtils.loadScenario(config);
 
-		org.matsim.analysis.VTTSHandler handler = new org.matsim.analysis.VTTSHandler(ruhrScenario, ignoredModes.split(";"), ignoredActs.split(";"));
+		org.matsim.analysis.VTTSHandler handler = new org.matsim.analysis.VTTSHandler(scenario, ignoredModes.split(";"), ignoredActs.split(";"));
 		if(incomeDependantScoring) handler.applyIncomeDependantScoring();
 
 		EventsManager manager = EventsUtils.createEventsManager();
@@ -108,7 +89,7 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		handler.printCarVTTS(outPath + "carVTTS.csv");
 		handler.printAvgVTTSperPerson(outPath + "avgVTTSperPerson.csv");
 		for(String mode : modes.split(";")){
-			handler.printVTTS(outPath + "VTTS_" + mode + ".csv", mode);
+			handler.printVTTS(outPath + "/VTTS_" + mode + ".csv", mode);
 		}
 
 
