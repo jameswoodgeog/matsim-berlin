@@ -28,20 +28,21 @@ input/brandenburg.osm.pbf:
 input/facilities.osm.pbf:
 	# Same OSM version as reference visitations
 	curl https://download.geofabrik.de/europe/germany/brandenburg-210101.osm.pbf -o $@
-# (Brandenburg OSM, presumably from 2021-01-01; "reference visitations" probably means "SrV records".  Looks liek this is never used.)
+# (Brandenburg OSM, presumably from 2021-01-01; for "reference visitations" which are used in covid project. Not necessary for transport planning purposes.
 
 
 $(germany)/RegioStaR-Referenzdateien.xlsx:
 	curl https://mcloud.de/downloads/mcloud/536149D1-2902-4975-9F7D-253191C0AD07/RegioStaR-Referenzdateien.xlsx -o $@
 # (link no longer working; in general, mcloud no longer exists; RegioStar = spatial planning categories)
 
+# Preprocessing and cleaning of raw osm data to geo-referenced activity facilities.
 input/facilities.gpkg: input/brandenburg.osm.pbf
 	$(sc) prepare facility-shp\
 	 --activity-mapping input/activity_mapping.json\
 	 --input $<\
 	 --output $@
 
-# This facility file is using an older version that matches the reference visitations more closely
+# The reference visitations used in the covid project refer to this older osm data version.
 input/ref_facilities.gpkg: input/facilities.osm.pbf
 	$(sc) prepare facility-shp\
 	 --activity-mapping input/activity_mapping.json\
@@ -124,7 +125,7 @@ $p/berlin-$V-network.xml.gz: input/sumo.net.xml
 	  --model org.matsim.application.prepare.network.params.hbs.HBSNetworkParams\
 	  --decrease-only
 
-# add the PT network.  May generate MATSim transit schedule as a side effect.  Note that this uses "complete-pt-2023-06-06.zip" as hardcoded input.
+# add the PT network. Generates MATSim transit schedule as a side effect.  Note that this uses "complete-pt-2024-10-27.zip" as hardcoded input.
 $p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz $p/berlin-$V-counts-vmz.xml.gz
 	$(sc) prepare transit-from-gtfs --network $< --output=$p\
 	 --name berlin-$V --date "2024-11-19" --target-crs $(CRS) \
@@ -162,7 +163,7 @@ $p/berlin-$V-counts-vmz.xml.gz: $p/berlin-$V-network.xml.gz
 	 --target-crs $(CRS)\
 	 --counts-mapping input/counts_mapping.csv
 
-# convert the gpkg facilities into MATSim format.  (It looks like facilities.osm.pbf, generated above, is never used.)
+# convert the gpkg facilities (for activity locations) into MATSim format.
 $p/berlin-$V-facilities.xml.gz: $p/berlin-$V-network.xml.gz input/facilities.gpkg $(berlin)/input/shp/Planungsraum_EPSG_25833.shp
 	$(sc) prepare facilities --network $< --shp $(word 2,$^)\
 	 --facility-mapping input/facility_mapping.json\
@@ -198,7 +199,7 @@ $p/berlin-static-$V-25pct.plans.xml.gz: $p/berlin-only-$V-25pct.plans.xml.gz $p/
 	 --output $@
 
 	$(sc) prepare lookup-regiostar --input $@ --output $@ --xls $(germany)/RegioStaR-Referenzdateien.xlsx
-# (merges the two population, and possibly joins spatial category into each person)
+# (merges the two population, and joins spatial category into each person)
 
 $p/berlin-activities-$V-25pct.plans.xml.gz: $p/berlin-static-$V-25pct.plans.xml.gz $p/berlin-$V-facilities.xml.gz $p/berlin-$V-network.xml.gz
 	$(sc) prepare activity-sampling --seed 1 --input $< --output $@ --persons src/main/python/table-persons.csv --activities src/main/python/table-activities.csv
@@ -211,7 +212,8 @@ $p/berlin-activities-$V-25pct.plans.xml.gz: $p/berlin-static-$V-25pct.plans.xml.
 	 --facilities $(word 2,$^)\
 	 --network $(word 3,$^)\
 
-# ("reference population" = population taken from SrV; used to assign activity chains.  uses src/main/python/table-....csv as input, but we do not know what that is.  Presumably SrV records.)
+# ("reference population" = population taken from SrV; used to assign activity chains. SrV records have to be processed (manually, not automatically done here) by extract_population_data.py to create src/main/python/table-....csv as input.
+# Input tables can also be found on shared-svn (restricted access): https://svn.vsp.tu-berlin.de/repos/shared-svn/projects/matsim-berlin/data/SrV/converted/
 
 $p/berlin-initial-$V-25pct.plans.xml.gz: $p/berlin-activities-$V-25pct.plans.xml.gz $p/berlin-$V-facilities.xml.gz $p/berlin-$V-network.xml.gz
 	$(sc) prepare init-location-choice\
@@ -228,7 +230,7 @@ $p/berlin-initial-$V-25pct.plans.xml.gz: $p/berlin-activities-$V-25pct.plans.xml
 		 --sample-size 0.25\
 		 --samples 0.1 0.03 0.01\
 
-# (unclear what this does.  Possibly workplace choice.)
+# Assign activity locations to agents (except home, which is set before).
 
 $p/berlin-longHaulFreight-$V-25pct.plans.xml.gz: $p/berlin-$V-network.xml.gz
 	$(sc) prepare extract-freight-trips ../public-svn/matsim/scenarios/countries/de/german-wide-freight/v2/german_freight.25pct.plans.xml.gz\
@@ -279,33 +281,6 @@ $p/berlin-cadyts-input-$V-25pct.plans.xml.gz: $p/berlin-initial-$V-25pct.plans.x
 	$(sc) prepare merge-populations $^\
 	 --output $@
 
-# This file requires eval runs # what are "eval" runs?  kai, apr-25
-$p/berlin-initial-$V-25pct.experienced_plans.xml.gz:
-	$(sc) prepare merge-plans output/exp-*/*.output_experienced_plans.xml.gz\
-		--output $@
-
-	# Only for debugging
-	$(sc) prepare downsample-population $@\
-     	 --sample-size 0.25\
-     	 --samples 0.05 0.01\
-
-ERROR_METRIC ?= log_error
-eval-opt: $p/berlin-initial-$V-25pct.experienced_plans.xml.gz
-	$(sc) prepare run-count-opt\
-	 --input $<\
-	 --network $p/berlin-$V-network-with-pt.xml.gz\
-     --counts $p/berlin-$V-counts-vmz.xml.gz\
-	 --output $p/berlin-$V-25pct.plans_selection_$(ERROR_METRIC).csv\
-	 --metric $(ERROR_METRIC)
-
-	$(sc) prepare select-plans-idx\
- 	 --input $p/berlin-cadyts-input-$V-25pct.plans.xml.gz\
- 	 --csv $p/berlin-$V-25pct.plans_selection_$(ERROR_METRIC).csv\
- 	 --output $p/berlin-$V-25pct.plans_$(ERROR_METRIC).xml.gz
-
-	$(sc) run --mode "routeChoice" --iterations 20 --all-car --output "output/eval-$(ERROR_METRIC)" --25pct --population "berlin-$V-25pct.plans_$(ERROR_METRIC).xml.gz"\
-	 --config $p/berlin-$V.config.xml
-
 $p/berlin-$V-25pct.plans_cadyts.xml.gz:
 	$(sc) prepare extract-plans-idx\
 	 --input output/cadyts/cadyts.output_plans.xml.gz\
@@ -316,7 +291,7 @@ $p/berlin-$V-25pct.plans_cadyts.xml.gz:
 	 --csv $p/berlin-$V-25pct.plans_selection_cadyts.csv\
 	 --output $@
 
-# These depend on the output of optimization runs
+# These depend on the output of cadyts calibration runs
 $p/berlin-$V-25pct.plans-initial.xml.gz: $p/berlin-$V-facilities.xml.gz $p/berlin-$V-network.xml.gz $p/berlin-longHaulFreight-$V-25pct.plans.xml.gz
 	$(sc) prepare scenario-cutout\
 	 --population $p/berlin-$V-25pct.plans_cadyts.xml.gz\
