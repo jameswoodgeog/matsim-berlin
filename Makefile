@@ -23,14 +23,17 @@ $(JAR):
 
 input/brandenburg.osm.pbf:
 	curl https://download.geofabrik.de/europe/germany/brandenburg-230101.osm.pbf -o $@
+# (Brandenburg OSM, presumably from 2023-01-01)
 
 input/facilities.osm.pbf:
 	# Same OSM version as reference visitations
 	curl https://download.geofabrik.de/europe/germany/brandenburg-210101.osm.pbf -o $@
+# (Brandenburg OSM, presumably from 2021-01-01; "reference visitations" probably means "SrV records".  Looks liek this is never used.)
+
 
 $(germany)/RegioStaR-Referenzdateien.xlsx:
 	curl https://mcloud.de/downloads/mcloud/536149D1-2902-4975-9F7D-253191C0AD07/RegioStaR-Referenzdateien.xlsx -o $@
-
+# (link no longer working; in general, mcloud no longer exists; RegioStar = spatial planning categories)
 
 input/facilities.gpkg: input/brandenburg.osm.pbf
 	$(sc) prepare facility-shp\
@@ -49,14 +52,17 @@ input/PLR_2013_2020.csv:
 	curl https://instantatlas.statistik-berlin-brandenburg.de/instantatlas/interaktivekarten/kommunalatlas/Kommunalatlas.zip --insecure -o atlas.zip
 	unzip atlas.zip -d input
 	rm atlas.zip
+# (Kommunalatlas = kleinräumiges Datenangebot.  "PLR" is the file name after expanding the zipfile; it may mean "Planungsraum".  Contains attributes of LOR zones (at 500 zones level).)
+# (link no longer active)
 
 $(berlin)/input/shp/Planungsraum_EPSG_25833.shp:
 	# This link is broken, the file is available in the public svn
 	curl https://www.stadtentwicklung.berlin.de/planen/basisdaten_stadtentwicklung/lor/download/LOR_SHP_EPSG_25833.zip -o tmp.zip
 	unzip tmp.zip -d $(berlin)/input
 	rm tmp.zip
+# (shapefiles LORs = Berlin local system of zones)
 
-
+# filtering for those parts of the osm data that we need for the network:
 input/network.osm: input/brandenburg.osm.pbf
 
 	# Detailed network includes bikes as well
@@ -77,7 +83,7 @@ input/network.osm: input/brandenburg.osm.pbf
 	rm input/network-detailed.osm.pbf
 	rm input/network-coarse.osm.pbf
 
-
+# converting the network from OSM format to SUMO format:
 input/sumo.net.xml: input/network.osm
 
 	$(SUMO_HOME)/bin/netconvert --geometry.remove --ramps.guess --ramps.no-split\
@@ -94,7 +100,7 @@ input/sumo.net.xml: input/network.osm
 	 --proj "+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs"\
 	 --osm-files $< -o=$@
 
-
+# converting the network from SUMO format to MATSim format:
 $p/berlin-$V-network.xml.gz: input/sumo.net.xml
 	$(sc) prepare network-from-sumo $< --target-crs $(CRS) --lane-restrictions REDUCE_CAR_LANES --output $@
 
@@ -118,7 +124,7 @@ $p/berlin-$V-network.xml.gz: input/sumo.net.xml
 	  --model org.matsim.application.prepare.network.params.hbs.HBSNetworkParams\
 	  --decrease-only
 
-
+# add the PT network.  May generate MATSim transit schedule as a side effect.  Note that this uses "complete-pt-2023-06-06.zip" as hardcoded input.
 $p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz $p/berlin-$V-counts-vmz.xml.gz
 	$(sc) prepare transit-from-gtfs --network $< --output=$p\
 	 --name berlin-$V --date "2024-11-19" --target-crs $(CRS) \
@@ -145,6 +151,7 @@ $p/berlin-$V-network-with-pt.xml.gz: $p/berlin-$V-network.xml.gz $p/berlin-$V-co
 	 	--under-estimated input/counts_underestimated.csv\
 	 	--output $@
 
+# register the VMZ counts (from 2018; see filename below) onto the network:
 $p/berlin-$V-counts-vmz.xml.gz: $p/berlin-$V-network.xml.gz
 	$(sc) prepare counts-from-vmz\
 	 --excel ../shared-svn/projects/matsim-berlin/berlin-v5.5/original_data/vmz_counts_2018/Datenexport_2018_TU_Berlin.xlsx\
@@ -155,6 +162,7 @@ $p/berlin-$V-counts-vmz.xml.gz: $p/berlin-$V-network.xml.gz
 	 --target-crs $(CRS)\
 	 --counts-mapping input/counts_mapping.csv
 
+# convert the gpkg facilities into MATSim format.  (It looks like facilities.osm.pbf, generated above, is never used.)
 $p/berlin-$V-facilities.xml.gz: $p/berlin-$V-network.xml.gz input/facilities.gpkg $(berlin)/input/shp/Planungsraum_EPSG_25833.shp
 	$(sc) prepare facilities --network $< --shp $(word 2,$^)\
 	 --facility-mapping input/facility_mapping.json\
@@ -175,7 +183,7 @@ $p/berlin-only-$V-25pct.plans.xml.gz: input/PLR_2013_2020.csv $(berlin)/input/sh
 		--shp $(word 2,$^) --shp-crs EPSG:25833\
 		--facilities $(word 3,$^) --facilities-attr resident\
 		--output $@
-
+# (presumably generates a synthetic population for Berlin from the "PLR" data, i.e. the population attribute marginals at LOR500 level)
 
 $p/brandenburg-only-$V-25pct.plans.xml.gz: input/facilities.gpkg
 	$(sc) prepare brandenburg-population\
@@ -190,7 +198,7 @@ $p/berlin-static-$V-25pct.plans.xml.gz: $p/berlin-only-$V-25pct.plans.xml.gz $p/
 	 --output $@
 
 	$(sc) prepare lookup-regiostar --input $@ --output $@ --xls $(germany)/RegioStaR-Referenzdateien.xlsx
-
+# (merges the two population, and possibly joins spatial category into each person)
 
 $p/berlin-activities-$V-25pct.plans.xml.gz: $p/berlin-static-$V-25pct.plans.xml.gz $p/berlin-$V-facilities.xml.gz $p/berlin-$V-network.xml.gz
 	$(sc) prepare activity-sampling --seed 1 --input $< --output $@ --persons src/main/python/table-persons.csv --activities src/main/python/table-activities.csv
@@ -202,6 +210,8 @@ $p/berlin-activities-$V-25pct.plans.xml.gz: $p/berlin-static-$V-25pct.plans.xml.
   	 --shp-crs $(CRS)\
 	 --facilities $(word 2,$^)\
 	 --network $(word 3,$^)\
+
+# ("reference population" = population taken from SrV; used to assign activity chains.  uses src/main/python/table-....csv as input, but we do not know what that is.  Presumably SrV records.)
 
 $p/berlin-initial-$V-25pct.plans.xml.gz: $p/berlin-activities-$V-25pct.plans.xml.gz $p/berlin-$V-facilities.xml.gz $p/berlin-$V-network.xml.gz
 	$(sc) prepare init-location-choice\
@@ -218,6 +228,7 @@ $p/berlin-initial-$V-25pct.plans.xml.gz: $p/berlin-activities-$V-25pct.plans.xml
 		 --sample-size 0.25\
 		 --samples 0.1 0.03 0.01\
 
+# (unclear what this does.  Possibly workplace choice.)
 
 $p/berlin-longHaulFreight-$V-25pct.plans.xml.gz: $p/berlin-$V-network.xml.gz
 	$(sc) prepare extract-freight-trips ../public-svn/matsim/scenarios/countries/de/german-wide-freight/v2/german_freight.25pct.plans.xml.gz\
@@ -268,7 +279,7 @@ $p/berlin-cadyts-input-$V-25pct.plans.xml.gz: $p/berlin-initial-$V-25pct.plans.x
 	$(sc) prepare merge-populations $^\
 	 --output $@
 
-# This file requires eval runs
+# This file requires eval runs # what are "eval" runs?  kai, apr-25
 $p/berlin-initial-$V-25pct.experienced_plans.xml.gz:
 	$(sc) prepare merge-plans output/exp-*/*.output_experienced_plans.xml.gz\
 		--output $@
