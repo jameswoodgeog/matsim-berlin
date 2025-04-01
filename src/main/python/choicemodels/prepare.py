@@ -114,6 +114,9 @@ def gumbel_zero_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     """  Gumbel with zero mean. """
     return gumbel_r.rvs(loc=-np.euler_gamma, size=(sample_size, number_of_draws))
 
+def triangular_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    return np.random.triangular(-1, 0, 1, (sample_size, number_of_draws))
+
 def calc_plan_variables(df, k, modes):
     """ Calculate utility and costs variables for all alternatives in the dataframe"""
 

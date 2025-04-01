@@ -10,7 +10,7 @@ import os
 from biogeme.expressions import Beta, bioDraws, log, exp, MonteCarlo
 
 from prepare import read_plan_choices, tn_generator, gumbel_generator, gumbel_zero_generator
-from prepare import tn_s1_generator, tn_s2_generator, ztn_s2_generator
+from prepare import tn_s1_generator, tn_s2_generator, ztn_s2_generator, triangular_generator
 
 ESTIMATE = 0
 FIXED = 1
@@ -67,7 +67,8 @@ if __name__ == "__main__":
         "TN_S1": (tn_s1_generator, "truncated normal [-1, 1]"),
         "ZTN_S2": (ztn_s2_generator, "truncated normal [0, 2]"),
         "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit"),
-        "GUMBEL_SCALE": (gumbel_zero_generator, "Gumbel generator with zero mean for mixed logit")
+        "GUMBEL_SCALE": (gumbel_zero_generator, "Gumbel generator with zero mean for mixed logit"),
+        "TRIANGULAR": (triangular_generator, "Triangular distribution [-1, 0, 1]"),
     })
 
 
