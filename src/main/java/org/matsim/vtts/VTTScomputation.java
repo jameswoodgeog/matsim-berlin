@@ -17,7 +17,7 @@
  *                                                                         *
  * *********************************************************************** */
 
-package org.matsim.analysis;
+package org.matsim.vtts;
 
 import org.matsim.core.controler.events.AfterMobsimEvent;
 import org.matsim.core.controler.events.StartupEvent;
@@ -25,14 +25,14 @@ import org.matsim.core.controler.listener.AfterMobsimListener;
 import org.matsim.core.controler.listener.StartupListener;
 
 /**
- * @author ikaddoura
- */
+* @author ikaddoura
+*/
 
 public class VTTScomputation implements StartupListener, AfterMobsimListener {
 
-	private final VTTSHandler vttsHandler;
+	private final org.matsim.vtts.VTTSHandler vttsHandler;
 
-	public VTTScomputation(VTTSHandler vttsHandler) {
+	public VTTScomputation(org.matsim.vtts.VTTSHandler vttsHandler) {
 		this.vttsHandler = vttsHandler;
 	}
 
@@ -47,3 +47,4 @@ public class VTTScomputation implements StartupListener, AfterMobsimListener {
 	}
 
 }
+
