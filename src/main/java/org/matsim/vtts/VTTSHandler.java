@@ -147,12 +147,12 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	@Override
 	public void handleEvent(PersonDepartureEvent event) {
 
-		if (isModeToBeSkipped(event.getLegMode()) || this.personIdsToBeIgnored.contains(event.getPersonId())) {
+		if (isModeToBeSkipped(event.getRoutingMode()) || this.personIdsToBeIgnored.contains(event.getPersonId())) {
 			// skip
 
 		} else {
 			this.departedPersonIds.add(event.getPersonId());
-			this.personId2currentTripMode.put(event.getPersonId(), event.getLegMode());
+			this.personId2currentTripMode.put(event.getPersonId(), event.getRoutingMode());
 
 
 			if (this.personId2currentTripNr.containsKey(event.getPersonId())){
@@ -629,9 +629,13 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private boolean isModeToBeSkipped(String legMode) {
 		for (String modeToBeSkipped : this.modesToBeSkipped) {
+			if (legMode==null) {
+				return true;
+			}
 			if (legMode.equals(modeToBeSkipped)) {
 				return true;
 			}
+
 		}
 		return false;
 	}

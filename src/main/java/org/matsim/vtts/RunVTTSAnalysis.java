@@ -17,6 +17,13 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 	@CommandLine.Option(names = "--config", description = "Path to config file", required = true)
 	private String configPath;
 
+	@CommandLine.Option(names = "--plans", description = "Path to config file", required = true)
+	private String plansPath;
+
+	@CommandLine.Option(names = "--network", description = "Path to config file", required = true)
+	private String networkPath;
+
+
 
 	public static void main(String[] args) {
 		new RunVTTSAnalysis().execute(args);
@@ -29,6 +36,8 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 
 		Config config = ConfigUtils.loadConfig(configPath);
 		config.vehicles().setVehiclesFile("/Users/gregorr/Documents/work/respos/git/matsim-berlin/input/v6.2/berlin-v6.2-vehicleTypes.xml");
+		config.plans().setInputFile(plansPath);
+		config.network().setInputFile(networkPath);
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		String[] ignoredModes = {"freight"};
 		String[] ignoredActivities = {"interaction"};
@@ -38,6 +47,8 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		EventsManager manager = EventsUtils.createEventsManager();
 		manager.addHandler(vttsHandler);
 		EventsUtils.readEvents(manager, eventsPath);
+		vttsHandler.printCarVTTS("/Users/gregorr/Documents/work/respos/git/matsim-berlin/output/VTTS/carVTTS.csv");
+		vttsHandler.printVTTS("/Users/gregorr/Documents/work/respos/git/matsim-berlin/output/VTTS/allVTTS.csv");
 
 		return 0;
 	}
