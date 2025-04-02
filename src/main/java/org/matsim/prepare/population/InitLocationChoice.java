@@ -235,6 +235,8 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 					// target leg distance in km
 					double origDist = (double) act.getAttributes().getAttribute("orig_dist");
 
+					origDist = adjustUnplausibleDistance(origDist, act.getAttributes().getAttribute("orig_duration"));
+
 					// Distance will be reduced
 					double dist = beelineDist(origDist);
 
@@ -298,6 +300,22 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 		pb.step();
 	}
 
+
+	/**
+	 * Fix data errors in the reported distance. Some distances are unreasonably large.
+	 */
+	private static double adjustUnplausibleDistance(double dist, Object legDuration) {
+
+		// Distances below are valid
+		if (dist <= 250 || !(legDuration instanceof Double duration))
+			return dist;
+
+		double hours = duration / 60;
+
+		// the distance needs to be traversable with 100km/h in the specified time
+		return Math.min(dist, hours * 100);
+	}
+
 	/**
 	 * Initializes random number generator with person specific seed.
 	 */
@@ -342,6 +360,13 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 		for (int i = 0; i < 500; i++) {
 			coord = rndCoord(rnd, dist, origin);
 			Link link = NetworkUtils.getNearestLink(network, coord);
+
+			// Long distance trips that are too far away from the nearest network link are moved to the link itself
+			double distToLink = CoordUtils.calcEuclideanDistance(coord, link.getCoord());
+			if (dist > 30_000 && distToLink > 2000) {
+				coord = link.getCoord();
+			}
+
 			if (!IGNORED_LINK_TYPES.contains(NetworkUtils.getType(link)))
 				break;
 		}

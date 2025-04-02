@@ -24,7 +24,7 @@ if __name__ == "__main__":
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
                         choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE",
-                                 "NORMAL_SCALE", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2"])
+                                 "NORMAL_SCALE", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2", "TRIANGULAR"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
@@ -72,40 +72,43 @@ if __name__ == "__main__":
     })
 
 
-    def bio_draws(name, B):
+    def bio_draws(name, B, dist=None):
         """ Helper function to draw from configured distribution """
+
+        if dist is None:
+            dist = args.mxl_distribution
 
         lower = None
         higher = None
         # Scale must be positive for these distributions
-        if args.mxl_distribution in ("LOG_NORMAL", "TN_SCALE", "ZTN_S2"):
+        if dist in ("LOG_NORMAL", "TN_SCALE", "ZTN_S2"):
             lower = 0
 
         # Ensure that drawn values never exceed the performing value
-        if args.mxl_distribution == "TN_S1_SCALE":
+        if dist == "TN_S1_SCALE":
             lower = -args.performing
             higher = args.performing
 
         sd = Beta(name + "_s", 1, lower, higher, ESTIMATE)
         rnd_name = name + "_rnd"
 
-        if args.mxl_distribution == "LOG_NORMAL":
+        if dist == "LOG_NORMAL":
             return exp(B + sd * bioDraws(rnd_name, "NORMAL"))
-        elif args.mxl_distribution == "TN_SCALE":
+        elif dist == "TN_SCALE":
             # TN_SCALE is truncated normal without bias
             return sd * bioDraws(rnd_name, "TN")
-        elif args.mxl_distribution == "NORMAL_SCALE":
+        elif dist == "NORMAL_SCALE":
             # NORMAL_SCALE is normal without bias
             return sd * bioDraws(rnd_name, "NORMAL_ANTI")
-        elif args.mxl_distribution == "GUMBEL_SCALE":
+        elif dist == "GUMBEL_SCALE":
             # this distribution has zero mean
             return sd * bioDraws(rnd_name, "GUMBEL_SCALE")
-        elif args.mxl_distribution == "TN_S2_SCALE":
+        elif dist == "TN_S2_SCALE":
             return sd * bioDraws(rnd_name, "TN_S2")
-        elif args.mxl_distribution == "TN_S1_SCALE":
+        elif dist == "TN_S1_SCALE":
             return sd * bioDraws(rnd_name, "TN_S1")
 
-        return B + sd * bioDraws(rnd_name, args.mxl_distribution)
+        return B + sd * bioDraws(rnd_name, dist)
 
 
     fixed_ascs = {x: float(y) for x, y in args.ascs}
@@ -121,10 +124,6 @@ if __name__ == "__main__":
 
         print("Using time effort", effort)
 
-    for mode in ds.modes:
-        if args.mxl_param == "tt_hours" and mode not in effort and mode in args.mxl_modes:
-            b = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
-            effort[mode] = bio_draws(f"BETA_TT_{mode}", b)
 
     print("Using distribution", args.mxl_distribution)
     print("Using MXL param", args.mxl_param)
@@ -164,6 +163,19 @@ if __name__ == "__main__":
             ASC[mode] = bio_draws(f"ASC_{mode}", asc)
         else:
             ASC[mode] = asc
+
+
+        if args.mxl_param == "tt_hours" and mode not in effort and mode in args.mxl_modes:
+
+            # Here ride is always ignored because the interpretation is not reasonable and leads to very wrong results as well
+            if mode == "ride":
+                # Ride will have random asc
+                ASC[mode] = bio_draws(f"ASC_{mode}", asc, dist="NORMAL_ANTI")
+
+            else:
+                b = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
+                effort[mode] = bio_draws(f"BETA_TT_{mode}", b)
+
 
     if args.car_util is not None:
         print("Using fixed utility for car", args.car_util)
