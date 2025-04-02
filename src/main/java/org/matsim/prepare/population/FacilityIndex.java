@@ -57,6 +57,11 @@ public final class FacilityIndex {
 			}
 		}
 
+		for (ActivityFacility af : all.getFacilities().values()) {
+			STRtree idx = this.index.computeIfAbsent("all", k -> new STRtree());
+			idx.insert(MGC.coord2Point(af.getCoord()).getEnvelopeInternal(), new AttributedActivityFacility(af));
+		}
+
 		// Build all trees
 		index.values().forEach(STRtree::build);
 	}

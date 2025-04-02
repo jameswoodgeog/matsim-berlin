@@ -249,6 +249,12 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 						location = sampleCommute(rnd, dist, lastCoord, (String) person.getAttributes().getAttribute(Attributes.ZONE), ars);
 					}
 
+					// These activity types are assigned to any facility
+					type = switch (type) {
+						case "personal_business", "other", "transport" -> "all";
+						default -> type;
+					};
+
 					if (location == null && facilities.index.containsKey(type)) {
 						// Needed for lambda
 						final Coord refCoord = lastCoord;
@@ -256,7 +262,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 
 						// Try to find a facility within the bounds
 						// increase bounds if no facility is found
-						for (Double b : DoubleList.of(1, 1.2, 1.5)) {
+						for (Double b : DoubleList.of(1, 1.2, 1.5, 1.8)) {
 							List<AttributedActivityFacility> query = facilities.index.get(type).query(MGC.coord2Point(lastCoord).buffer(dist * (b + 0.2)).getEnvelopeInternal());
 							// Distance should be within the bounds
 							List<AttributedActivityFacility> res = query.stream().filter(f -> checkDistanceBound(dist, refCoord, f.getCoord(), b)).toList();
@@ -321,7 +327,14 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	 */
 	private SplittableRandom initRandomNumberGenerator(Person person, long planNumber) {
 		BigInteger i = new BigInteger(person.getId().toString().getBytes());
-		return new SplittableRandom(i.longValue() + seed * 1000 + planNumber * 10);
+		SplittableRandom rnd = new SplittableRandom(i.longValue() + seed * 31 + planNumber * 7);
+
+		// warm up the random number generator
+		for (int j = 0; j < 100; j++) {
+			rnd.nextDouble();
+		}
+
+		return rnd;
 	}
 
 	/**
@@ -371,7 +384,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 				break;
 		}
 
-		return coord;
+		return CoordUtils.round(coord);
 	}
 
 	/**
@@ -387,7 +400,7 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 	}
 
 	/**
-	 * Only samples randomly from the zone, ignoring the distance.
+	 * Samples randomly incorporating zone weight and work attraction.
 	 */
 	private ActivityFacility sampleBerlinWorkPlace(STRtree index, double dist, Coord refCoord, String homeZone, SplittableRandom rnd) {
 

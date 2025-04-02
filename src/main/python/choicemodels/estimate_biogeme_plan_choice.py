@@ -24,7 +24,7 @@ if __name__ == "__main__":
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
                         choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE",
-                                 "NORMAL_SCALE", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2", "TRIANGULAR"])
+                                 "NORMAL_SCALE", "TN_S2", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2", "TRIANGULAR"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
