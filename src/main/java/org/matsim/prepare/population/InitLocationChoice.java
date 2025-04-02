@@ -249,16 +249,15 @@ public class InitLocationChoice implements MATSimAppCommand, PersonAlgorithm {
 						location = sampleCommute(rnd, dist, lastCoord, (String) person.getAttributes().getAttribute(Attributes.ZONE), ars);
 					}
 
-					// These activity types are assigned to any facility
+					// These activity types can be assigned to any facility
 					type = switch (type) {
-						case "personal_business", "other", "transport" -> "all";
+						case "other", "transport" -> "all";
 						default -> type;
 					};
 
 					if (location == null && facilities.index.containsKey(type)) {
 						// Needed for lambda
 						final Coord refCoord = lastCoord;
-
 
 						// Try to find a facility within the bounds
 						// increase bounds if no facility is found
