@@ -5,7 +5,7 @@ from collections import namedtuple, defaultdict
 
 import numpy as np
 import pandas as pd
-from scipy.stats import truncnorm, gumbel_r
+from scipy.stats import truncnorm, gumbel_r, cauchy
 
 # Cost parameter from current berlin model
 daily_costs = defaultdict(lambda: 0.0, car=-14.30, pt=-3)
@@ -15,6 +15,7 @@ TN = truncnorm(0, np.inf)
 TN_S1 = truncnorm(-1, 1)
 TN_S2 = truncnorm(-2, 2)
 ZTN_S2 = truncnorm(0, 2)
+CAUCHY = cauchy()
 
 PlanChoice = namedtuple("PlanChoice", ["df", "modes", "varying", "k", "global_income"])
 TripChoice = namedtuple("TripChoice", ["df", "modes", "varying", "global_income"])
@@ -77,8 +78,8 @@ def read_plan_choices(input_file: str, sample: float = 1, seed: int = 42) -> Pla
 
     df_wide = calc_plan_variables(df_wide, k, modes)
 
-    # Normalize the weights to sum to 1
-    df_wide['weight'] = df_wide['weight'] / df_wide['weight'].sum()
+    # Normalize the weights to sum to 1 (not performed because given weights are coming from input)
+    # df_wide['weight'] = df_wide['weight'] / df_wide['weight'].sum()
 
     varying = list(df_wide.columns.str.extract(r"plan_1_([a-zA-z_]+)", expand=False).dropna().unique())
 
@@ -116,6 +117,10 @@ def gumbel_zero_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
 
 def triangular_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
     return np.random.triangular(-1, 0, 1, (sample_size, number_of_draws))
+
+def cauchy_generator(sample_size: int, number_of_draws: int) -> np.ndarray:
+    """ Cauchy distribution """
+    return CAUCHY.rvs(size=(sample_size, number_of_draws))
 
 def calc_plan_variables(df, k, modes):
     """ Calculate utility and costs variables for all alternatives in the dataframe"""

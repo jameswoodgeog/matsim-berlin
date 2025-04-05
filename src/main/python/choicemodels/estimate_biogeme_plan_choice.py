@@ -10,7 +10,7 @@ import os
 from biogeme.expressions import Beta, bioDraws, log, exp, MonteCarlo
 
 from prepare import read_plan_choices, tn_generator, gumbel_generator, gumbel_zero_generator
-from prepare import tn_s1_generator, tn_s2_generator, ztn_s2_generator, triangular_generator
+from prepare import tn_s1_generator, tn_s2_generator, ztn_s2_generator, triangular_generator, cauchy_generator
 
 ESTIMATE = 0
 FIXED = 1
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     parser.add_argument("--mxl-modes", help="Modes to use mixed logit for", nargs="+", type=str,
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
-                        choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE",
+                        choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE", "CAUCHY",
                                  "NORMAL_SCALE", "TN_S2", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2", "TRIANGULAR"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor",
                         action="store_true")
     parser.add_argument("--price-perception", help="Given value for fixed price perception", type=float, default=1)
-    parser.add_argument("--effort", help="Additional time utility", nargs="+", action='append', default=[])
+    parser.add_argument("--effort", help="Additional marginal utility of travel time", nargs="+", action='append', default=[])
     parser.add_argument("--ascs", help="Predefined ASCs", nargs="+", action='append', default=[])
     parser.add_argument("--car-util", help="Fixed utility for car", type=float, default=None)
     parser.add_argument("--no-income", help="Don't consider the income", action="store_true")
@@ -69,6 +69,7 @@ if __name__ == "__main__":
         "GUMBEL": (gumbel_generator, "Gumbel generator for mixed logit"),
         "GUMBEL_SCALE": (gumbel_zero_generator, "Gumbel generator with zero mean for mixed logit"),
         "TRIANGULAR": (triangular_generator, "Triangular distribution [-1, 0, 1]"),
+        "CAUCHY": (cauchy_generator, "Cauchy distribution"),
     })
 
 
@@ -213,6 +214,11 @@ if __name__ == "__main__":
     U = {}
     AV = {}
 
+    # By default, ride incurs double performing, expect when it is estimated separately
+    ride_factor = 2 if "ride" not in effort else 1
+
+    print("Using ride beta performing *", ride_factor)
+
     for i in range(1, ds.k + 1):
         # Price is already negative
         perceived_price = (BETA_CAR_PRICE_PERCEPTION * v[f"plan_{i}_car_price"] +
@@ -224,8 +230,10 @@ if __name__ == "__main__":
         u += v[f"plan_{i}_bus_legs"] * BETA_BUS_LEGS
 
         for mode in ds.modes:
+            f = (ride_factor if mode == "ride" else 1)
+
             u += ASC[mode] * v[f"plan_{i}_{mode}_usage"]
-            u += -BETA_PERFORMING * v[f"plan_{i}_{mode}_hours"] * (2 if mode == "ride" else 1)
+            u += -BETA_PERFORMING * v[f"plan_{i}_{mode}_hours"] * f
 
         u += v[f"plan_{i}_car_used"] * B_CAR
 
