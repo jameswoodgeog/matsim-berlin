@@ -166,7 +166,7 @@ if __name__ == "__main__":
             ASC[mode] = asc
 
 
-        if args.mxl_param == "tt_hours" and mode not in effort and mode in args.mxl_modes:
+        if args.mxl_param == "tt_hours" and mode in args.mxl_modes:
 
             # Here ride is always ignored because the interpretation is not reasonable and leads to very wrong results as well
             if mode == "ride":
