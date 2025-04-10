@@ -42,7 +42,7 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		String[] ignoredModes = {"freight"};
 		String[] ignoredActivities = {"interaction"};
 
-		VTTSHandler vttsHandler = new VTTSHandler(scenario, ignoredModes, "interaction");
+		VTTSHandler vttsHandler = new VTTSHandler(scenario, ignoredModes, "interaction", null);
 
 		EventsManager manager = EventsUtils.createEventsManager();
 		manager.addHandler(vttsHandler);
