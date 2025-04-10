@@ -26,17 +26,11 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.commons.math.stat.StatUtils;
-
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
@@ -50,12 +44,13 @@ import org.matsim.api.core.v01.events.handler.PersonDepartureEventHandler;
 import org.matsim.api.core.v01.events.handler.TransitDriverStartsEventHandler;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Population;
 import org.matsim.contrib.dvrp.vrpagent.VrpAgentLogic;
 import org.matsim.core.gbl.Gbl;
+import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scoring.functions.ScoringParameters;
 import org.matsim.core.utils.collections.Tuple;
-import org.matsim.core.utils.misc.Time;
 
 
 /**
@@ -76,7 +71,10 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	private static int noTripNrWarning = 0;
 
 	private final Scenario scenario;
+	private final VTTSCalculationMethod vttsCalculationMethod;
 	private int currentIteration;
+
+	private double globalAverageIncome;
 
 	private final Set<Id<Person>> personIdsToBeIgnored = new HashSet<>();
 	private final String stageActivitySubString;
@@ -99,11 +97,19 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final double defaultVTTS_moneyPerHour; // for the car mode!
 
-	public VTTSHandler(Scenario scenario, String[] helpLegModes, String stageActivitySubString) {
+	public VTTSHandler(Scenario scenario, String[] helpLegModes, String stageActivitySubString, VTTSCalculationMethod vttsCalculationMethod) {
 
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
 			log.warn("The marginal utility of money must not be 0.0. The VTTS is computed in Money per Time.");
 		}
+		if (vttsCalculationMethod== VTTSCalculationMethod.noIncomeDependetScoring) {
+			log.warn("You are not using income for scoring ");
+		}
+		if (vttsCalculationMethod==VTTSCalculationMethod.incomeDependetScoring) {
+			this.globalAverageIncome = computeAvgIncome(scenario.getPopulation());
+		}
+
+		this.vttsCalculationMethod = vttsCalculationMethod;
 		this.modesToBeSkipped = helpLegModes;
 		this.stageActivitySubString = stageActivitySubString;
 		this.scenario = scenario;
@@ -293,9 +299,16 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 						+ "Setting this value to zero. (Probably using subpopulations...)");
 			}
 			double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
-
 			// Translate the disutility into monetary units.
 			double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
+
+			if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependetScoring)) {
+				//if income dependet scoring is used, the marginal utility of money is specific to each agent#
+				// there must be a better way of getting the person specific marginal utility of money
+				double personalIncome = PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId));
+				double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
+				delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
+			}
 
 			// store the VTTS for analysis purposes
 			if (this.personId2VTTSh.containsKey(personId)) {
@@ -647,4 +660,30 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 			return false;
 		}
 	}
+
+
+	private double computeAvgIncome(Population population) {
+
+		log.info("reading income attribute using " + PersonUtils.class + " of all agents and compute global average.\n" +
+			"Make sure to set this attribute only to appropriate agents (i.e. true 'persons' and not freight agents) \n" +
+			"Income values <= 0 are ignored. Agents that have negative or 0 income will use the marginalUtilityOfMoney in their subpopulation's scoring params..");
+		OptionalDouble averageIncome = population.getPersons().values().stream()
+			//consider only agents that have a specific income provided
+			.filter(person -> PersonUtils.getIncome(person) != null)
+			.mapToDouble(PersonUtils::getIncome)
+			.filter(dd -> dd > 0)
+			.average();
+
+		if (averageIncome.isEmpty()) {
+			throw new RuntimeException("you have enabled income dependent scoring but there is not a single income attribute in the population! " +
+				"If you are not aiming for person-specific marginalUtilityOfMoney, better use other PersonScoringParams, e.g. SubpopulationPersonScoringParams, which have higher performance." +
+				"Otherwise, please provide income attributes in the population...");
+		} else {
+			log.info("global average income is " + averageIncome);
+			return averageIncome.getAsDouble();
+		}
+	}
+
+
+	public enum VTTSCalculationMethod {noIncomeDependetScoring, incomeDependetScoring};
 }
