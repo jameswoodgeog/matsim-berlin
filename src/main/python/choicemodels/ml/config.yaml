@@ -1,0 +1,49 @@
+
+trainer:
+  accelerator: "cpu"
+  log_every_n_steps: 10000
+
+  callbacks:
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+        logging_interval: 'epoch'
+
+    - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+      init_args:
+          monitor: "val_loss"
+          mode: "min"
+          save_top_k: 1
+          filename: "{version}_{epoch}_{val_loss:.2f}"
+          enable_version_counter: true
+          dirpath: ./checkpoints
+
+    - class_path: utils.CustomWriter
+      init_args:
+        output_dir: ./predictions
+
+optimizer:
+  lr: 0.01
+
+lr_scheduler:
+  gamma: 0.99
+
+data:
+  choice_path: ../../../../../trip-choices.csv
+  trip_path: ../../table-trips.csv
+  person_path: ../../table-persons.csv
+
+  choices: [walk, pt, car, bike, ride]
+
+  features:
+    - age
+    - income
+
+  mode_features:
+    - km
+    - hours
+    - daily_cost
+    - distance_cost
+
+model:
+  layers: [64, 32, 16]
+
