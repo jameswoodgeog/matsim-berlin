@@ -6,7 +6,6 @@ import os
 import numpy as np
 import pandas as pd
 
-import torch
 import torch.nn.functional as F
 
 from lightning.pytorch.callbacks import BasePredictionWriter
@@ -29,7 +28,13 @@ class CustomWriter(BasePredictionWriter):
             probs = F.softmax(logits, dim=1).cpu().numpy()
             ref = ds.get_ref(idx)
 
-            df = pd.concat((pd.DataFrame(ref).astype(object), pd.DataFrame(probs, columns=ds.modes)), axis=1, copy=False)
+            df = pd.concat((pd.DataFrame(ref).reset_index(drop=True), pd.DataFrame(probs, columns=ds.modes)),
+                           axis=1, copy=False)
+
+            df.rename(columns={"person": "ID"}, inplace=True)
+            df["trip_n"] += 1
+            df["chosen"] = np.diagonal(probs[..., ref.choice.values-1])
+
             dfs.append(df)
 
         df = pd.concat(dfs, axis=0)

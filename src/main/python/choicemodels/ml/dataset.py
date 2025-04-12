@@ -18,10 +18,10 @@ km_costs = defaultdict(lambda: 0.0, car=-0.149, ride=-0.149)
 class ChoiceDataSet(torch.utils.data.Dataset):
     """ Wrapper around the dataframe containing the choice data """
 
-    def __init__(self, df, modes, features, mode_features, mask=None):
+    def __init__(self, df, modes, features, mode_features, persons, variations):
 
-        if mask is not None:
-            df = df[mask]
+        # Mask the dataframe to only include the selected persons
+        df = df[df.person.isin(persons)]
 
         ft = list(features)
         for m in modes:
@@ -33,16 +33,32 @@ class ChoiceDataSet(torch.utils.data.Dataset):
         self.w = df["weight"].to_numpy().astype(np.float32)
         self.avail = df[[f"{m}_valid" for m in modes]].to_numpy().astype(np.bool_)
         self.modes = modes
+        self.persons = persons
+        self.variations = variations
+        self.variations_idx = df["variation_idx"].to_numpy().astype(np.int64) if variations is not None else None
 
     def get_ref(self, idx):
         return self.ref.iloc[idx]
 
     def __getitem__(self, idx):
-        # TODO: include matrix with variations, this can be applied only when requested to keep memory usage low
-        return self.x[idx], self.y[idx], self.avail[idx], self.w[idx]
+        # Return the data for given index
+        if self.variations is None:
+            return self.x[idx], self.y[idx], self.avail[idx], self.w[idx]
+
+        # If there are variations return augmented data
+        # Calculate the original index and variation index
+        orig_idx = idx // self.variations.shape[1]
+        var_idx = idx % self.variations.shape[1]
+
+        v = self.variations_idx[orig_idx]
+        variation = self.variations[v, var_idx]
+
+        x = np.concatenate((self.x[orig_idx], variation), axis=0)
+
+        return x, self.y[orig_idx], self.avail[orig_idx], self.w[orig_idx]
 
     def __len__(self):
-        return self.x.shape[0]
+        return self.x.shape[0] * self.variations.shape[1] if self.variations is not None else self.x.shape[0]
 
 def calc_trip_weight(df):
     """ Calculate weight of each trip in relation to whole day """
@@ -58,7 +74,9 @@ class ChoiceData(L.LightningDataModule):
     """ Read and augment choice data from csv file """
 
     def __init__(self, choice_path: str, trip_path: str, person_path: str,
-                 choices: list, features: list, mode_features: list, batch_size: int = 1024):
+                 choices: list, features: list, mode_features: list,
+                 variations: int = 0,
+                 batch_size: int = 2048):
         super().__init__()
         self.choice_path = choice_path
         self.trip_path = trip_path
@@ -70,10 +88,14 @@ class ChoiceData(L.LightningDataModule):
 
         self.train = None
         self.test = None
-        self.variations = qmc.MultivariateNormalQMC(mean=[0] * len(choices), cov=np.eye(len(choices)), seed=42)
+        self.variations = variations
 
         # This attribute is exposed to the model and needs to be set during init
         self.num_features = len(features) + len(choices) * len(mode_features)
+
+        # Additional variation features
+        if variations > 0:
+            self.num_features += len(choices) - 1
 
     def setup(self, stage: str):
         """ Setup the dataset """
@@ -94,13 +116,28 @@ class ChoiceData(L.LightningDataModule):
 
         rng = np.random.default_rng()
 
+        dist = qmc.MultivariateNormalQMC(mean=[0] * (len(self.choices) - 1), cov=np.eye(len(self.choices) - 1), seed=42)
+
         persons = df.person.unique()
+
+        variations = None
+        person_to_variation = {}
+        if self.variations > 0:
+            variations = np.zeros((len(persons), self.variations, len(self.choices) - 1), dtype=np.float32)
+            for i, person_id in enumerate(persons):
+                sample = dist.random(self.variations)
+                variations[i, :, :] = sample
+                person_to_variation[person_id] = i
+
+            # Add a column to the dataframe that maps each row to its variation index
+            df['variation_idx'] = df['person'].map(person_to_variation)
 
         train = rng.choice(persons, size=int(len(persons) * 0.8), replace=False)
         test = np.setdiff1d(persons, train)
 
-        self.train = ChoiceDataSet(df, self.choices, self.features, self.mode_features, df.person.isin(train))
-        self.test = ChoiceDataSet(df, self.choices, self.features, self.mode_features, df.person.isin(test))
+
+        self.train = ChoiceDataSet(df, self.choices, self.features, self.mode_features, train, variations)
+        self.test = ChoiceDataSet(df, self.choices, self.features, self.mode_features, test, variations)
 
 
     def train_dataloader(self):
