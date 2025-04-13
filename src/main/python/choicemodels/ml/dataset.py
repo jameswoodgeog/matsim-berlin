@@ -76,7 +76,7 @@ class ChoiceData(L.LightningDataModule):
     def __init__(self, choice_path: str, trip_path: str, person_path: str,
                  choices: list, features: list, mode_features: list,
                  variations: int = 0,
-                 batch_size: int = 2048):
+                 batch_size: int = 4096):
         super().__init__()
         self.choice_path = choice_path
         self.trip_path = trip_path

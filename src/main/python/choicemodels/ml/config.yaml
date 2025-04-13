@@ -1,7 +1,9 @@
 
 trainer:
-  accelerator: "cpu"
-  log_every_n_steps: 10000
+  accelerator: 'cpu'
+  log_every_n_steps: 10
+#  accumulate_grad_batches: 5
+#  gradient_clip_val: 0.5
 
   callbacks:
     - class_path: lightning.pytorch.callbacks.LearningRateMonitor
@@ -21,6 +23,10 @@ trainer:
       init_args:
         output_dir: ./predictions
 
+#    - class_path: lightning.pytorch.callbacks.StochasticWeightAveraging
+#      init_args:
+#        swa_lrs: 1e-2
+
 optimizer:
   lr: 0.01
 
@@ -37,6 +43,8 @@ data:
   features:
     - age
     - income
+    - car_valid
+    - pt_valid
 
   mode_features:
     - km
@@ -44,7 +52,8 @@ data:
     - daily_cost
     - distance_cost
 
-  variations: 0
+#  variations: 32
+#  batch_size: 8192
 
 model:
   layers: [64, 32, 16]

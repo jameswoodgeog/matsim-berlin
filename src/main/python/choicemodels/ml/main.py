@@ -18,6 +18,12 @@ class MyLightningCLI(LightningCLI):
 
         parser.add_optimizer_args(torch.optim.Adam)
         parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
+        # parser.add_lr_scheduler_args(torch.optim.lr_scheduler.CosineAnnealingWarmRestarts)
+
+    def configure_optimizers(self, *args, **kwargs):
+        result = super().configure_optimizers(*args, **kwargs)
+
+        return {"optimizer": result[0][0], "lr_scheduler": result[1][0], "monitor": "val_loss"}
 
 if __name__ == "__main__":
     cli = MyLightningCLI(ChoiceModel, ChoiceData)
