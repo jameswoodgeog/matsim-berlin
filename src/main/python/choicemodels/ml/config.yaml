@@ -57,4 +57,7 @@ data:
 
 model:
   layers: [64, 32, 16]
+
+  joint_network: True
+
 #   layers: [8, 8]

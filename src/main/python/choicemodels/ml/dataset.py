@@ -91,7 +91,8 @@ class ChoiceData(L.LightningDataModule):
         self.variations = variations
 
         # This attribute is exposed to the model and needs to be set during init
-        self.num_features = len(features) + len(choices) * len(mode_features)
+        self.num_global_features = len(features)
+        self.num_features_per_mode = len(mode_features)
 
         # Additional variation features
         if variations > 0:

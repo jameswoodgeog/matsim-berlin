@@ -14,7 +14,8 @@ class MyLightningCLI(LightningCLI):
 
     def add_arguments_to_parser(self, parser):
         parser.link_arguments("data.choices", "model.choices")
-        parser.link_arguments("data.num_features", "model.num_features", apply_on="instantiate")
+        parser.link_arguments("data.num_global_features", "model.num_global_features", apply_on="instantiate")
+        parser.link_arguments("data.num_features_per_mode", "model.num_features_per_mode", apply_on="instantiate")
 
         parser.add_optimizer_args(torch.optim.Adam)
         parser.add_lr_scheduler_args(torch.optim.lr_scheduler.ExponentialLR)
