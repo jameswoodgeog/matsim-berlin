@@ -305,9 +305,13 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 			if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependetScoring)) {
 				//if income dependet scoring is used, the marginal utility of money is specific to each agent#
 				// there must be a better way of getting the person specific marginal utility of money
-				double personalIncome = PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId));
-				double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
-				delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
+				if (PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId)) != null) {
+					double personalIncome = PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId));
+					double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
+					delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
+				} else {
+					//
+				}
 			}
 
 			// store the VTTS for analysis purposes
