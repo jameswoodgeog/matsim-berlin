@@ -18,6 +18,8 @@
  * *********************************************************************** */
 package org.matsim.analysis.vtts;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.population.Activity;
 import org.matsim.core.config.groups.ScoringConfigGroup;
 import org.matsim.core.config.groups.ScoringConfigGroup.TypicalDurationScoreComputation;
@@ -33,7 +35,7 @@ import org.matsim.core.utils.misc.Time;
  *
  */
 public class MarginalSumScoringFunction {
-//	private final static Logger log = Logger.getLogger(MarginalSumScoringFunction.class);
+	private final static Logger log = LogManager.getLogger(MarginalSumScoringFunction.class);
 
 	CharyparNagelActivityScoring activityScoringA;
 	CharyparNagelActivityScoring activityScoringB;
@@ -73,8 +75,8 @@ public class MarginalSumScoringFunction {
 		Activity activityWithoutDelay = PopulationUtils.createActivity(activity);
 		activityWithoutDelay.setStartTime(activity.getStartTime().seconds() - delay);
 
-//		log.info("activity: " + activity.toString());
-//		log.info("activityWithoutDelay: " + activityWithoutDelay.toString());
+		log.info("activity: " + activity.toString());
+		log.info("activityWithoutDelay: " + activityWithoutDelay.toString());
 
 		sumScoringA.handleActivity(activity);
 		sumScoringB.handleActivity(activityWithoutDelay);
