@@ -116,7 +116,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		this.currentIteration = Integer.MIN_VALUE;
 		this.defaultVTTS_moneyPerHour =
 				(this.scenario.getConfig().scoring().getPerforming_utils_hr()
-				+ this.scenario.getConfig().scoring().getModes().get( TransportMode.car ).getMarginalUtilityOfTraveling() * (-1.0)
+						 + this.scenario.getConfig().scoring().getModes().get( TransportMode.car ).getMarginalUtilityOfTraveling() * (-1.0)
 				) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
 	}
 
@@ -234,109 +234,106 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		if (this.personId2currentTripMode.get(personId) == null) {
 			// No mode stored for this person and trip. This indicates that the current trip mode was skipped.
 			// Thus, do not compute any VTTS for this trip.
+			return;
+		}
+		double activityDelayDisutilityOneSec = 0.;
+
+		// First, check if the plan completed is completed, i.e. if the agent has arrived at an activity
+		final Person person = this.scenario.getPopulation().getPersons().get( personId );
+		if (this.personId2currentActivityType.containsKey(personId ) && this.personId2currentActivityStartTime.containsKey(personId )) {
+			// the second condition was already tested earlier.
+
+			String subpop = PopulationUtils.getSubpopulation( person );
+
+			final org.matsim.vtts.MarginalSumScoringFunction marginalSumScoringFunction =
+					new org.matsim.vtts.MarginalSumScoringFunction(
+							new ScoringParameters.Builder(scenario.getConfig().scoring(), scenario.getConfig().scoring().getScoringParameters(subpop), scenario.getConfig().scenario()).build());
+
+			if (activityEndTime ==Double.NEGATIVE_INFINITY) {
+				// The end time is undefined...
+
+				// ... now handle the first and last OR overnight activity. This is figured out by the scoring function itself (depending on the activity types).
+
+				Activity activityMorning = PopulationUtils.createActivityFromLinkId(this.personId2firstActivityType.get(personId), null);
+				activityMorning.setEndTime(this.personId2firstActivityEndTime.get(personId));
+
+				Activity activityEvening = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
+				activityEvening.setStartTime(this.personId2currentActivityStartTime.get(personId));
+
+				activityDelayDisutilityOneSec = marginalSumScoringFunction.getOvernightActivityDelayDisutility(activityMorning, activityEvening, 1.0);
+
+			} else {
+				// The activity has an end time indicating a 'normal' activity.
+
+				Activity activity = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
+				activity.setStartTime(this.personId2currentActivityStartTime.get(personId));
+				activity.setEndTime(activityEndTime);
+				activityDelayDisutilityOneSec = marginalSumScoringFunction.getNormalActivityDelayDisutility(activity, 1.0);
+			}
+
 		} else {
-			double activityDelayDisutilityOneSec = 0.;
+			// No, there is no information about the current activity which indicates that the trip (with the delay) was not completed.
 
-			// First, check if the plan completed is completed, i.e. if the agent has arrived at an activity
-			if (this.personId2currentActivityType.containsKey(personId) && this.personId2currentActivityStartTime.containsKey(personId)) {
+			if (incompletedPlanWarning <= 10) {
+				log.warn("Agent " + personId + " has not yet completed the plan/trip (the agent is probably stucking). Cannot compute the disutility of being late at this activity. "
+								 + "Something like the disutility of not arriving at the activity is required. Try to avoid this by setting a smaller stuck time period.");
+				log.warn("Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().scoring().getPerforming_utils_hr());
 
-				String subpop = null;
-
-				if (this.scenario.getPopulation().getPersons().get(personId) != null && this.scenario.getPopulation().getPersons().get(personId).getAttributes().getAttribute(this.scenario.getConfig().plans().getSubpopulationAttributeName()) != null) {
-					subpop = (String) this.scenario.getPopulation().getPersons().get(personId).getAttributes().getAttribute(this.scenario.getConfig().plans().getSubpopulationAttributeName());
+				if (incompletedPlanWarning == 10) {
+					log.warn(Gbl.FUTURE_SUPPRESSED);
 				}
-
-				final org.matsim.analysis.vtts.MarginalSumScoringFunction marginalSumScoringFunction =
-						new org.matsim.analysis.vtts.MarginalSumScoringFunction(
-								new ScoringParameters.Builder(scenario.getConfig().scoring(), scenario.getConfig().scoring().getScoringParameters(subpop), scenario.getConfig().scenario()).build());
-
-				if (activityEndTime ==Double.NEGATIVE_INFINITY) {
-					// The end time is undefined...
-
-					// ... now handle the first and last OR overnight activity. This is figured out by the scoring function itself (depending on the activity types).
-
-					Activity activityMorning = PopulationUtils.createActivityFromLinkId(this.personId2firstActivityType.get(personId), null);
-					activityMorning.setEndTime(this.personId2firstActivityEndTime.get(personId));
-
-					Activity activityEvening = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
-					activityEvening.setStartTime(this.personId2currentActivityStartTime.get(personId));
-
-					activityDelayDisutilityOneSec = marginalSumScoringFunction.getOvernightActivityDelayDisutility(activityMorning, activityEvening, 1.0);
-
-				} else {
-					// The activity has an end time indicating a 'normal' activity.
-
-					Activity activity = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
-					activity.setStartTime(this.personId2currentActivityStartTime.get(personId));
-					activity.setEndTime(activityEndTime);
-					activityDelayDisutilityOneSec = marginalSumScoringFunction.getNormalActivityDelayDisutility(activity, 1.0);
-				}
-
-			} else {
-				// No, there is no information about the current activity which indicates that the trip (with the delay) was not completed.
-
-				if (incompletedPlanWarning <= 10) {
-					log.warn("Agent " + personId + " has not yet completed the plan/trip (the agent is probably stucking). Cannot compute the disutility of being late at this activity. "
-							+ "Something like the disutility of not arriving at the activity is required. Try to avoid this by setting a smaller stuck time period.");
-					log.warn("Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().scoring().getPerforming_utils_hr());
-
-					if (incompletedPlanWarning == 10) {
-						log.warn(Gbl.FUTURE_SUPPRESSED);
-					}
-					incompletedPlanWarning++;
-				}
-				activityDelayDisutilityOneSec = (1.0 / 3600.) * this.scenario.getConfig().scoring().getPerforming_utils_hr();
+				incompletedPlanWarning++;
 			}
+			activityDelayDisutilityOneSec = (1.0 / 3600.) * this.scenario.getConfig().scoring().getPerforming_utils_hr();
+		}
 
-			// Calculate the agent's trip delay disutility.
-			// (Could be done similar to the activity delay disutility. As long as it is computed linearly, the following should be okay.)
-			String mode = this.personId2currentTripMode.get(personId);
-			double marginalUtilityOfTraveling = 0.;
-			if (this.scenario.getConfig().scoring().getModes().get(mode) != null) {
-				marginalUtilityOfTraveling = this.scenario.getConfig().scoring().getModes().get(mode).getMarginalUtilityOfTraveling();
+		// Calculate the agent's trip delay disutility.
+		// (Could be done similarly to the activity delay disutility. As long as it is computed linearly, the following should be okay.)
+		String mode = this.personId2currentTripMode.get(personId);
+		double marginalUtilityOfTraveling = 0.;
+		if (this.scenario.getConfig().scoring().getModes().get(mode) != null) {
+			marginalUtilityOfTraveling = this.scenario.getConfig().scoring().getModes().get(mode).getMarginalUtilityOfTraveling();
+		} else {
+			log.warn("Could not identify the marginal utility of traveling for mode " + mode + ". "
+							 + "Setting this value to zero. (Probably using subpopulations...)");
+		}
+		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
+		// Translate the disutility into monetary units.
+		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
+
+		if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependetScoring)) {
+			//if income dependet scoring is used, the marginal utility of money is specific to each agent#
+			// there must be a better way of getting the person specific marginal utility of money
+			if (PersonUtils.getIncome( person ) != null) {
+				double personalIncome = PersonUtils.getIncome( person );
+				double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
+				delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
 			} else {
-				log.warn("Could not identify the marginal utility of traveling for mode " + mode + ". "
-						+ "Setting this value to zero. (Probably using subpopulations...)");
-			}
-			double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
-			// Translate the disutility into monetary units.
-			double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
-
-			if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependetScoring)) {
-				//if income dependet scoring is used, the marginal utility of money is specific to each agent#
-				// there must be a better way of getting the person specific marginal utility of money
-				if (PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId)) != null) {
-					double personalIncome = PersonUtils.getIncome(scenario.getPopulation().getPersons().get(personId));
-					double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
-					delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
-				} else {
-					//
-				}
-			}
-
-			// store the VTTS for analysis purposes
-			if (this.personId2VTTSh.containsKey(personId)) {
-
-				this.personId2VTTSh.get(personId).add(delayCostPerSec_usingActivityDelayOneSec * 3600);
-				this.personId2TripNr2VTTSh.get(personId).put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600);
-				this.personId2TripNr2Mode.get(personId).put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
-
-			} else {
-
-				List<Double> vTTSh = new ArrayList<>();
-				vTTSh.add(delayCostPerSec_usingActivityDelayOneSec * 3600.);
-				this.personId2VTTSh.put(personId, vTTSh);
-
-				Map<Integer, Double> tripNr2VTTSh = new HashMap<>();
-				tripNr2VTTSh.put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600.);
-				this.personId2TripNr2VTTSh.put(personId, tripNr2VTTSh);
-
-				Map<Integer, String> tripNr2Mode = new HashMap<>();
-				tripNr2Mode.put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
-				this.personId2TripNr2Mode.put(personId, tripNr2Mode);
+				//
 			}
 		}
 
+		// store the VTTS for analysis purposes
+		if (this.personId2VTTSh.containsKey(personId)) {
+
+			this.personId2VTTSh.get(personId).add(delayCostPerSec_usingActivityDelayOneSec * 3600);
+			this.personId2TripNr2VTTSh.get(personId).put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600);
+			this.personId2TripNr2Mode.get(personId).put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
+
+		} else {
+
+			List<Double> vTTSh = new ArrayList<>();
+			vTTSh.add(delayCostPerSec_usingActivityDelayOneSec * 3600.);
+			this.personId2VTTSh.put(personId, vTTSh);
+
+			Map<Integer, Double> tripNr2VTTSh = new HashMap<>();
+			tripNr2VTTSh.put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600.);
+			this.personId2TripNr2VTTSh.put(personId, tripNr2VTTSh);
+
+			Map<Integer, String> tripNr2Mode = new HashMap<>();
+			tripNr2Mode.put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
+			this.personId2TripNr2Mode.put(personId, tripNr2Mode);
+		}
 	}
 
 	public void printVTTS(String fileName) {
@@ -507,7 +504,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 				if (noTripNrWarning <= 3) {
 					log.warn("Could not identify the trip number of person " + id + " at time " + time + "."
-							+ " Trying to use the average car VTTS...");
+									 + " Trying to use the average car VTTS...");
 				}
 				if (noTripNrWarning == 3) {
 					log.warn("Additional warnings of this type are suppressed.");
@@ -528,7 +525,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 						if (noCarVTTSWarning <= 3) {
 							log.warn("In the previous iteration at the given time " + time + " the agent " + id + " was performing a trip with a different mode (" + this.personId2TripNr2Mode.get(id).get(tripNrOfGivenTime) + ")."
-									+ "Trying to use the average car VTTS.");
+											 + "Trying to use the average car VTTS.");
 							if (noCarVTTSWarning == 3) {
 								log.warn("Additional warnings of this type are suppressed.");
 							}
@@ -540,7 +537,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 				} else {
 					if (noTripVTTSWarning <= 3) {
 						log.warn("Could not find the VTTS of person " + id + " and trip number " + tripNrOfGivenTime + " (time: " + time + ")."
-								+ " Trying to use the average car VTTS...");
+										 + " Trying to use the average car VTTS...");
 					}
 					if (noTripVTTSWarning == 3) {
 						log.warn("Additional warnings of this type are suppressed.");
@@ -580,7 +577,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 				if (fromToTime_sec != null) {
 					if (this.personId2TripNr2DepartureTime.get(personId).get(tripNr) >= fromToTime_sec.getFirst()
-							&& this.personId2TripNr2DepartureTime.get(personId).get(tripNr) < fromToTime_sec.getSecond()) {
+								&& this.personId2TripNr2DepartureTime.get(personId).get(tripNr) < fromToTime_sec.getSecond()) {
 						// consider this trip
 					} else {
 						considerTrip = false;
@@ -669,19 +666,19 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	private double computeAvgIncome(Population population) {
 
 		log.info("reading income attribute using " + PersonUtils.class + " of all agents and compute global average.\n" +
-			"Make sure to set this attribute only to appropriate agents (i.e. true 'persons' and not freight agents) \n" +
-			"Income values <= 0 are ignored. Agents that have negative or 0 income will use the marginalUtilityOfMoney in their subpopulation's scoring params..");
+						 "Make sure to set this attribute only to appropriate agents (i.e. true 'persons' and not freight agents) \n" +
+						 "Income values <= 0 are ignored. Agents that have negative or 0 income will use the marginalUtilityOfMoney in their subpopulation's scoring params..");
 		OptionalDouble averageIncome = population.getPersons().values().stream()
-			//consider only agents that have a specific income provided
-			.filter(person -> PersonUtils.getIncome(person) != null)
-			.mapToDouble(PersonUtils::getIncome)
-			.filter(dd -> dd > 0)
-			.average();
+												 //consider only agents that have a specific income provided
+												 .filter(person -> PersonUtils.getIncome(person) != null)
+												 .mapToDouble(PersonUtils::getIncome)
+												 .filter(dd -> dd > 0)
+												 .average();
 
 		if (averageIncome.isEmpty()) {
 			throw new RuntimeException("you have enabled income dependent scoring but there is not a single income attribute in the population! " +
-				"If you are not aiming for person-specific marginalUtilityOfMoney, better use other PersonScoringParams, e.g. SubpopulationPersonScoringParams, which have higher performance." +
-				"Otherwise, please provide income attributes in the population...");
+											   "If you are not aiming for person-specific marginalUtilityOfMoney, better use other PersonScoringParams, e.g. SubpopulationPersonScoringParams, which have higher performance." +
+											   "Otherwise, please provide income attributes in the population...");
 		} else {
 			log.info("global average income is " + averageIncome);
 			return averageIncome.getAsDouble();
