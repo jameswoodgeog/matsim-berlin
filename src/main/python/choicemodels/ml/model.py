@@ -9,8 +9,8 @@ import torchmetrics
 class ChoiceModel(L.LightningModule):
     """ A simple choice model using PyTorch Lightning """
 
-    def __init__(self, choices: list, layers: list, joint_network: bool,
-                num_global_features: int, num_features_per_mode: int,
+    def __init__(self, choices: list, layers: list, joint_network: bool, batch_norm: bool,
+                 num_global_features: int, num_features_per_mode: int,
                  dropout: float = 0.3, label_smoothing: float = 0.2):
         super().__init__()
 
@@ -27,8 +27,11 @@ class ChoiceModel(L.LightningModule):
 
                 layer = torch.nn.Linear(num_features, layers[i], bias=True)
                 # torch.nn.init.xavier_uniform_(layer.weight)
-
                 l.append(layer)
+
+                if batch_norm:
+                    l.append(torch.nn.BatchNorm1d(layers[i]))
+
                 l.append(torch.nn.ReLU())
 
                 if i < len(layers) - 1 and dropout > 0:
@@ -49,6 +52,8 @@ class ChoiceModel(L.LightningModule):
                 for j in range(len(layers)):
                     layer = torch.nn.Linear(num_features, layers[j], bias=True)
                     # torch.nn.init.xavier_uniform_(layer.weight)
+                    if batch_norm:
+                        l.append(torch.nn.BatchNorm1d(layers[j]))
 
                     l.append(layer)
                     l.append(torch.nn.ReLU())
@@ -68,16 +73,15 @@ class ChoiceModel(L.LightningModule):
 
     def forward(self, x: torch.Tensor, avail: torch.BoolTensor = None):
 
-
         if self.joint_network:
             Y = self.model(x)
         else:
 
             logits = []
             for i, m in enumerate(self.model):
-
                 idx = list(range(self.num_global_features))
-                idx += list(range(self.num_global_features + i * self.num_features_per_mode, self.num_global_features + (i+1) * self.num_features_per_mode))
+                idx += list(range(self.num_global_features + i * self.num_features_per_mode,
+                                  self.num_global_features + (i + 1) * self.num_features_per_mode))
 
                 # Pass global and mode features to each module
                 l = m(x[:, idx])

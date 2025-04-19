@@ -115,6 +115,14 @@ class ChoiceData(L.LightningDataModule):
         df.income /= 2000
         df.age /= 30
 
+        # Convert to boolean
+        df.pt_abo_avail = df.pt_abo_avail.map(dict(yes=True, no=False))
+
+        # Convert some of the categorical variables
+        df = pd.concat((df, pd.get_dummies(df.employment, prefix="employment")), axis=1)
+        df = pd.concat((df, pd.get_dummies(df.gender, prefix="gender")), axis=1)
+        df = pd.concat((df, pd.get_dummies(df.region_type, prefix="region_type")), axis=1)
+
         rng = np.random.default_rng()
 
         dist = qmc.MultivariateNormalQMC(mean=[0] * (len(self.choices) - 1), cov=np.eye(len(self.choices) - 1), seed=42)

@@ -45,6 +45,10 @@ data:
     - income
     - car_valid
     - pt_valid
+    - car_avail
+    - bike_avail
+    - pt_abo_avail
+    - region_type_1
 
   mode_features:
     - km
@@ -59,5 +63,6 @@ model:
   layers: [64, 32, 16]
 
   joint_network: True
+  batch_norm: True
 
 #   layers: [8, 8]
