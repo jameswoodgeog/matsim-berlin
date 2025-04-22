@@ -24,7 +24,8 @@ if __name__ == "__main__":
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
                         choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE", "CAUCHY",
-                                 "NORMAL_SCALE", "TN_S2", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2", "TRIANGULAR"])
+                                 "NORMAL_SCALE", "LOG_NORMAL_SCALE", "TN_S2", "TN_S2_SCALE", "TN_S1_SCALE", "ZTN_S2",
+                                 "TRIANGULAR"])
     parser.add_argument("--mxl-param", help="Which parameter to variate", type=str, default="constant",
                         choices=["none", "constant", "car_util", "tt_hours"])
     parser.add_argument("--est-performing", help="Estimate the beta for performing", action="store_true")
@@ -43,7 +44,8 @@ if __name__ == "__main__":
     parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor",
                         action="store_true")
     parser.add_argument("--price-perception", help="Given value for fixed price perception", type=float, default=1)
-    parser.add_argument("--effort", help="Additional marginal utility of travel time", nargs="+", action='append', default=[])
+    parser.add_argument("--effort", help="Additional marginal utility of travel time", nargs="+", action='append',
+                        default=[])
     parser.add_argument("--ascs", help="Predefined ASCs", nargs="+", action='append', default=[])
     parser.add_argument("--car-util", help="Fixed utility for car", type=float, default=None)
     parser.add_argument("--no-income", help="Don't consider the income", action="store_true")
@@ -82,7 +84,7 @@ if __name__ == "__main__":
         lower = None
         higher = None
         # Scale must be positive for these distributions
-        if dist in ("LOG_NORMAL", "TN_SCALE", "ZTN_S2"):
+        if dist in ("LOG_NORMAL", "LOG_NORMAL_SCALE", "TN", "TN_SCALE", "ZTN_S2"):
             lower = 0
 
         # Ensure that drawn values never exceed the performing value
@@ -95,6 +97,8 @@ if __name__ == "__main__":
 
         if dist == "LOG_NORMAL":
             return exp(B + sd * bioDraws(rnd_name, "NORMAL"))
+        elif dist == "LOG_NORMAL_SCALE":
+            return sd * exp(bioDraws(rnd_name, "NORMAL"))
         elif dist == "TN_SCALE":
             # TN_SCALE is truncated normal without bias
             return sd * bioDraws(rnd_name, "TN")
@@ -124,7 +128,6 @@ if __name__ == "__main__":
                 effort[mode] = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
 
         print("Using time effort", effort)
-
 
     print("Using distribution", args.mxl_distribution)
     print("Using MXL param", args.mxl_param)
@@ -165,7 +168,6 @@ if __name__ == "__main__":
         else:
             ASC[mode] = asc
 
-
         if args.mxl_param == "tt_hours" and mode in args.mxl_modes:
 
             # Here ride is always ignored because the interpretation is not reasonable and leads to very wrong results as well
@@ -176,7 +178,6 @@ if __name__ == "__main__":
             else:
                 b = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
                 effort[mode] = bio_draws(f"BETA_TT_{mode}", b)
-
 
     if args.car_util is not None:
         print("Using fixed utility for car", args.car_util)
