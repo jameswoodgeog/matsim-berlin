@@ -3,9 +3,7 @@ package org.matsim.run.scoring;
 import org.junit.jupiter.api.Test;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Person;
-import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ScoringConfigGroup;
@@ -13,10 +11,8 @@ import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.OutputDirectoryHierarchy;
 import org.matsim.core.population.PersonUtils;
-import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
-import org.matsim.core.utils.misc.OptionalTime;
 import org.matsim.examples.ExamplesUtils;
 import org.matsim.vtts.VTTSHandler;
 import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
@@ -32,24 +28,23 @@ public class TestVTTS {
 		Config config = ConfigUtils.loadConfig(inputPath + "config-with-mode-vehicles.xml");
 		config.controller().setLastIteration(1);
 		config.controller().setOutputDirectory("output/VTTSTest/");
-		for( ScoringConfigGroup.ActivityParams activityParam : config.scoring().getActivityParams() ){
-			activityParam.setMinimalDuration( Double.POSITIVE_INFINITY );
-		}
-
 		config.global().setNumberOfThreads(1);
 		config.qsim().setNumberOfThreads(1);
 		config.controller().setOverwriteFileSetting(OutputDirectoryHierarchy.OverwriteFileSetting.deleteDirectoryIfExists);
-		// ===
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-		for( Person person : scenario.getPopulation().getPersons().values() ){
-			for( PlanElement planElement : person.getSelectedPlan().getPlanElements() ){
-				if ( planElement instanceof Activity ) {
-					OptionalTime typicalDuration = config.scoring().getActivityParams( ((Activity) planElement).getType() ).getTypicalDuration();
-					((Activity) planElement).setEndTime( ((Activity) planElement).getStartTime().seconds() + typicalDuration.seconds() );
-				}
+
+		for( ScoringConfigGroup.ActivityParams activityParam : config.scoring().getActivityParams() ){
+			if (activityParam.getActivityType().contains("w")) {
+				activityParam.setTypicalDuration(20.0);
 			}
+			if (activityParam.getActivityType().contains("h")) {
+			}
+
 		}
-		// ===
+
+
+
+
+		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Controler controler = new Controler(scenario);
 		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependetScoring);
 		controler.addOverridingModule(new AbstractModule() {
@@ -58,8 +53,8 @@ public class TestVTTS {
 				addEventHandlerBinding().toInstance(vttsHandler);
 			}
 		});
-
 		controler.run();
+		vttsHandler.computeFinalVTTS();
 		vttsHandler.printVTTS(controler.getConfig().controller().getOutputDirectory()+"vtts.csv");
 		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("1"))).isEqualTo(6.0);
 		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("6"))).isEqualTo(22.309690970751944);

@@ -51,6 +51,7 @@ import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scoring.functions.ScoringParameters;
 import org.matsim.core.utils.collections.Tuple;
+import org.matsim.core.utils.misc.OptionalTime;
 
 
 /**

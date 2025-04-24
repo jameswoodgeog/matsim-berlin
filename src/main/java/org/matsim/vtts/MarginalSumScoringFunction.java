@@ -21,14 +21,10 @@ package org.matsim.vtts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.population.Activity;
-import org.matsim.core.config.groups.ScoringConfigGroup;
-import org.matsim.core.config.groups.ScoringConfigGroup.TypicalDurationScoreComputation;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scoring.SumScoringFunction;
-import org.matsim.core.scoring.functions.ActivityUtilityParameters;
 import org.matsim.core.scoring.functions.CharyparNagelActivityScoring;
 import org.matsim.core.scoring.functions.ScoringParameters;
-import org.matsim.core.utils.misc.Time;
 
 /**
  * @author ikaddoura
@@ -102,13 +98,17 @@ public class MarginalSumScoringFunction {
 		SumScoringFunction delegateB = new SumScoringFunction() ;
 		delegateB.addScoringFunction(activityScoringB);
 
-        if (activityMorning.getStartTime().seconds() == Double.NEGATIVE_INFINITY && activityMorning.getEndTime().seconds() != Double.NEGATIVE_INFINITY) {
+	//	log.info("activityMorning: " + activityMorning.toString());
+	//	log.info("activityEvening: " + activityEvening.toString());
+	//	log.info("activityEveningWithoutDelay: " + activityEveningWithoutDelay.toString());
+
+		if (activityMorning.getStartTime().isUndefined()  && activityMorning.getEndTime().isDefined()) {
         	// 'morningActivity' is the first activity
         } else {
         	throw new RuntimeException("activityMorning is not the first activity. Or why does it have a start time? Aborting...");
         }
 
-        if (activityEvening.getStartTime().seconds() != Double.NEGATIVE_INFINITY && activityEvening.getEndTime().seconds() == Double.NEGATIVE_INFINITY) {
+        if (activityEvening.getStartTime().isDefined() && activityEvening.getEndTime().isUndefined()) {
         	// 'eveningActivity' is the last activity
         } else {
         	throw new RuntimeException("activityEvening is not the last activity. Or why does it have an end time? Aborting...");
@@ -123,9 +123,6 @@ public class MarginalSumScoringFunction {
 		Activity activityEveningWithoutDelay = PopulationUtils.createActivity(activityEvening);
 		activityEveningWithoutDelay.setStartTime(activityEvening.getStartTime().seconds() - delay);
 
-//		log.info("activityMorning: " + activityMorning.toString());
-//		log.info("activityEvening: " + activityEvening.toString());
-//		log.info("activityEveningWithoutDelay: " + activityEveningWithoutDelay.toString());
 
 		delegateA.handleActivity(activityEvening);
 		delegateB.handleActivity(activityEveningWithoutDelay);
