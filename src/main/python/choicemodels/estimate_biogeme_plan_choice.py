@@ -125,7 +125,7 @@ if __name__ == "__main__":
         # Nan values are estimated
         for mode in effort:
             if np.isnan(effort[mode]):
-                effort[mode] = Beta(f"BETA_TT_{mode}", 0, None, None, ESTIMATE)
+                effort[mode] = Beta(f"BETA_TT_{mode}", 0, 0, None, ESTIMATE)
 
         print("Using time effort", effort)
 
