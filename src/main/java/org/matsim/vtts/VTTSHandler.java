@@ -51,7 +51,6 @@ import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scoring.functions.ScoringParameters;
 import org.matsim.core.utils.collections.Tuple;
-import org.matsim.core.utils.misc.OptionalTime;
 
 
 /**
@@ -103,10 +102,10 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
 			log.warn("The marginal utility of money must not be 0.0. The VTTS is computed in Money per Time.");
 		}
-		if (vttsCalculationMethod== VTTSCalculationMethod.noIncomeDependetScoring) {
+		if (vttsCalculationMethod== VTTSCalculationMethod.noIncomeDependentScoring) {
 			log.warn("You are not using income for scoring ");
 		}
-		if (vttsCalculationMethod==VTTSCalculationMethod.incomeDependetScoring) {
+		if (vttsCalculationMethod==VTTSCalculationMethod.incomeDependentScoring) {
 			this.globalAverageIncome = computeAvgIncome(scenario.getPopulation());
 		}
 
@@ -302,7 +301,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		// Translate the disutility into monetary units.
 		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
 
-		if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependetScoring)) {
+		if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependentScoring)) {
 			//if income dependet scoring is used, the marginal utility of money is specific to each agent#
 			// there must be a better way of getting the person specific marginal utility of money
 			if (PersonUtils.getIncome( person ) != null) {
@@ -687,5 +686,5 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	}
 
 
-	public enum VTTSCalculationMethod {noIncomeDependetScoring, incomeDependetScoring};
+	public enum VTTSCalculationMethod {noIncomeDependentScoring, incomeDependentScoring};
 }

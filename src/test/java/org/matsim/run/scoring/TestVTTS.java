@@ -18,7 +18,7 @@ import org.matsim.vtts.VTTSHandler;
 import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependetScoring;
+import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependentScoring;
 
 public class TestVTTS {
 
@@ -46,7 +46,7 @@ public class TestVTTS {
 
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Controler controler = new Controler(scenario);
-		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependetScoring);
+		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependentScoring);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {
@@ -75,7 +75,7 @@ public class TestVTTS {
 			PersonUtils.setIncome(person, income);
 		}
 		Controler controler = new Controler(scenario);
-		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", VTTSHandler.VTTSCalculationMethod.incomeDependetScoring);
+		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", VTTSHandler.VTTSCalculationMethod.incomeDependentScoring);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {

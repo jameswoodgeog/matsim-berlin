@@ -19,7 +19,7 @@ import org.matsim.examples.ExamplesUtils;
 import org.matsim.vtts.VTTSHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependetScoring;
+import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependentScoring;
 
 public class TestVTTSScoring {
 
@@ -54,7 +54,7 @@ public class TestVTTSScoring {
 		createTestPopulation(scenario);
 
 		Controler controler = new Controler(scenario);
-		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependetScoring);
+		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependentScoring);
 		controler.addOverridingModule(new AbstractModule() {
 			@Override
 			public void install() {
@@ -64,13 +64,22 @@ public class TestVTTSScoring {
 		controler.run();
 		vttsHandler.computeFinalVTTS();
 		vttsHandler.printVTTS(controler.getConfig().controller().getOutputDirectory()+"vtts.csv");
-		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("noTimePressure"))).isEqualTo(6.0);
-		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("6"))).isEqualTo(22.309690970751944);
+		/*
+		this is the average between the work activity which is exact the typical duration --> 5.718610788259497
+		and the home activity which is a lot longer then the typical duration --> 7.215831535289929E-4
+		*/
+        assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("perfectDuration"))).isEqualTo(2.859666185706513);
+
+		/*
+		this is the average between the work activity which is below the typical duration --> 10.939293407637269 --> higher than the default of 6
+		and the home activity which is a lot longer then the typical duration --> 7.215397658355549E-4
+		*/
+		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("timePressure"))).isEqualTo(22.309690970751944);
 	}
 
 	private static void createTestPopulation(Scenario scenario) {
 		Population population = scenario.getPopulation();
-		Person person = population.getFactory().createPerson(Id.createPersonId("noTimePressure"));
+		Person person = population.getFactory().createPerson(Id.createPersonId("perfectDuration"));
 		Plan plan = population.getFactory().createPlan();
 		Activity activityHome = scenario.getPopulation().getFactory().createActivityFromLinkId("home", Id.createLinkId("1"));
 		activityHome.setEndTime(10.0);
@@ -87,6 +96,21 @@ public class TestVTTSScoring {
 		plan.addActivity(activityHome2);
 		person.addPlan(plan);
 		population.addPerson(person);
+
+		Person personThatIsUnderTimePressure = population.getFactory().createPerson(Id.createPersonId("timePressure"));
+		Plan planForTimePressureAgent = population.getFactory().createPlan();
+		Activity activityHomeStartLater = scenario.getPopulation().getFactory().createActivityFromLinkId("home", Id.createLinkId("1"));
+		activityHomeStartLater.setEndTime(30.0);
+		//travel time still 360 seconds --> agent performs activity only for 5 secs --> higher vtts
+		Activity activityWorkStartLater = scenario.getPopulation().getFactory().createActivityFromLinkId("work", Id.createLinkId("6"));
+		activityWorkStartLater.setEndTime(395.0);
+		planForTimePressureAgent.addActivity(activityHomeStartLater);
+		planForTimePressureAgent.addLeg(population.getFactory().createLeg(TransportMode.car));
+		planForTimePressureAgent.addActivity(activityWorkStartLater);
+		planForTimePressureAgent.addLeg(population.getFactory().createLeg(TransportMode.car));
+		planForTimePressureAgent.addActivity(activityHome2);
+		personThatIsUnderTimePressure.addPlan(planForTimePressureAgent);
+		population.addPerson(personThatIsUnderTimePressure);
 	}
 
 
