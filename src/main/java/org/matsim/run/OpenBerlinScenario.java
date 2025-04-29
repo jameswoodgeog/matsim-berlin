@@ -29,10 +29,10 @@ import org.matsim.core.router.util.TravelTime;
 import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.run.scoring.AdvancedScoringConfigGroup;
 import org.matsim.run.scoring.AdvancedScoringModule;
+import org.matsim.run.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters_0_3;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import picocli.CommandLine;
-import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import java.util.List;
 
@@ -170,7 +170,7 @@ public class OpenBerlinScenario extends MATSimApplication {
 			controler.addOverridingModule(new AbstractModule() {
 				@Override
 				public void install() {
-					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
+					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters_0_3.class).asEagerSingleton();
 				}
 			});
 		}
