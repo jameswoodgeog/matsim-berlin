@@ -21,6 +21,7 @@ package org.matsim.vtts;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.matsim.api.core.v01.population.Activity;
+import org.matsim.core.config.groups.ScoringConfigGroup;
 import org.matsim.core.population.PopulationUtils;
 import org.matsim.core.scoring.SumScoringFunction;
 import org.matsim.core.scoring.functions.CharyparNagelActivityScoring;
@@ -37,6 +38,12 @@ public class MarginalSumScoringFunction {
 	CharyparNagelActivityScoring activityScoringB;
 
 	public MarginalSumScoringFunction(ScoringParameters params) {
+
+
+		ScoringConfigGroup.ActivityParams taxiActParams = new ScoringConfigGroup.ActivityParams("TaxiPickup");
+		taxiActParams.setTypicalDurationScoreComputation(ScoringConfigGroup.TypicalDurationScoreComputation.relative);
+		taxiActParams.setTypicalDuration(1.0);
+		taxiActParams.setScoringThisActivityAtAll(false);
 
 		/*
 		ScoringParameters.ActivityParams taxiActParams = new PlanCalcScoreConfigGroup.ActivityParams("TaxiPickup");
