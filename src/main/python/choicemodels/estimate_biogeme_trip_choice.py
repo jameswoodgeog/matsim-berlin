@@ -170,9 +170,8 @@ if __name__ == "__main__":
 
         direct_elas_time = Derive(prob, f"{mode}_hours") * v[f"{mode}_hours"] / prob
 
-        # The costs are negative, so we need to multiply by -1
-        direct_elas_cost = Derive(prob, f"{mode}_daily_costs") * -v[f"{mode}_daily_costs"] / prob
-        direct_elas_km_costs = Derive(prob, f"{mode}_km_costs") * -v[f"{mode}_km_costs"] / prob
+        direct_elas_cost = Derive(prob, f"{mode}_daily_costs") * v[f"{mode}_daily_costs"] / prob
+        direct_elas_km_costs = Derive(prob, f"{mode}_km_costs") * v[f"{mode}_km_costs"] / prob
 
         probs[f"Direct elasticity {mode} time"] = direct_elas_time
         probs[f"Direct elasticity {mode} daily costs"] = direct_elas_cost
