@@ -50,10 +50,10 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 	@CommandLine.Option(names = "--bike-speed-factor", description = "Factor for bike speed in [0, inf]", defaultValue = "1")
 	private double bikeSpeedFactor;
 
-	@CommandLine.Option(names = "--car-price-factor", description = "Percentage change (1 = 100%) in car costs (fixed and distance).", defaultValue = "1")
+	@CommandLine.Option(names = "--car-price-factor", description = "Factor for car costs (fixed and distance).", defaultValue = "1")
 	private double carPriceFactor;
 
-	@CommandLine.Option(names = "--pt-price-factor", description = "Percentage change (1 = 100%) in pt costs (fixed and distance).", defaultValue = "1")
+	@CommandLine.Option(names = "--pt-price-factor", description = "Factor for pt costs (fixed and distance).", defaultValue = "1")
 	private double ptPriceFactor;
 
 	@CommandLine.Option(names = "--imc", description = "Enable informed-mode-choice functionality")
