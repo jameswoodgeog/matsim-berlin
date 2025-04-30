@@ -12,6 +12,7 @@ import org.matsim.application.MATSimApplication;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
+import org.matsim.core.config.groups.ScoringConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.replanning.annealing.ReplanningAnnealerConfigGroup;
@@ -45,6 +46,15 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 
 	@CommandLine.Option(names = "--bike-speed-offset", description = "Offset the default bike speed in km/h", defaultValue = "0")
 	private double bikeSpeedOffset;
+
+	@CommandLine.Option(names = "--bike-speed-factor", description = "Factor for bike speed in [0, inf]", defaultValue = "1")
+	private double bikeSpeedFactor;
+
+	@CommandLine.Option(names = "--car-price-factor", description = "Percentage change (1 = 100%) in car costs (fixed and distance).", defaultValue = "1")
+	private double carPriceFactor;
+
+	@CommandLine.Option(names = "--pt-price-factor", description = "Percentage change (1 = 100%) in pt costs (fixed and distance).", defaultValue = "1")
+	private double ptPriceFactor;
 
 	@CommandLine.Option(names = "--imc", description = "Enable informed-mode-choice functionality")
 	private boolean imc;
@@ -119,6 +129,23 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 			}
 		}
 
+		if (carPriceFactor != 1) {
+			log.info("Setting car price to {} of default", carPriceFactor);
+
+			ScoringConfigGroup.ModeParams carParams = config.scoring().getScoringParameters("person").getModes().get(TransportMode.car);
+
+			carParams.setMonetaryDistanceRate(carParams.getMonetaryDistanceRate() * carPriceFactor);
+			carParams.setDailyMonetaryConstant(carParams.getDailyMonetaryConstant() * carPriceFactor);
+		}
+
+		if (ptPriceFactor != 1) {
+			log.info("Setting pt price to {} of default", ptPriceFactor);
+
+			ScoringConfigGroup.ModeParams ptParams = config.scoring().getScoringParameters("person").getModes().get(TransportMode.pt);
+			ptParams.setMonetaryDistanceRate(ptParams.getMonetaryDistanceRate() * ptPriceFactor);
+			ptParams.setDailyMonetaryConstant(ptParams.getDailyMonetaryConstant() * ptPriceFactor);
+		}
+
 		if (imc) {
 			// Add score information
 			config.scoring().setExplainScores(true);
@@ -167,15 +194,23 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 
 		super.prepareScenario(scenario);
 
-		// If bike speed is adjusted, we need to remove all bike routes and travel times
-		// These times will be recalculated by the router
 		if (bikeSpeedOffset != 0) {
 
 			log.info("Adjusting bike speed by {} km/h", bikeSpeedOffset);
 
 			VehicleType bike = scenario.getVehicles().getVehicleTypes().get(Id.create(TransportMode.bike, VehicleType.class));
 			bike.setMaximumVelocity(bike.getMaximumVelocity() + bikeSpeedOffset / 3.6);
+		} else if (bikeSpeedFactor != 1) {
+			log.info("Adjusting bike speed to {} %", bikeSpeedFactor * 100);
 
+			VehicleType bike = scenario.getVehicles().getVehicleTypes().get(Id.create(TransportMode.bike, VehicleType.class));
+			bike.setMaximumVelocity(bike.getMaximumVelocity() * bikeSpeedFactor);
+		}
+
+
+		// If bike speed is adjusted, we need to remove all bike routes and travel times
+		// These times will be recalculated by the router
+		if (bikeSpeedOffset != 0 || bikeSpeedFactor != 1) {
 			for (Person person : scenario.getPopulation().getPersons().values()) {
 				for (Plan plan : person.getPlans()) {
 					for (Leg leg : TripStructureUtils.getLegs(plan)) {

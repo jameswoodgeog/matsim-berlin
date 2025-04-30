@@ -5,9 +5,7 @@ import argparse
 import biogeme.biogeme as bio
 import biogeme.database as db
 import biogeme.models as models
-import numpy as np
-
-from biogeme.expressions import Beta, bioDraws, PanelLikelihoodTrajectory, log, MonteCarlo
+from biogeme.expressions import Beta, Derive, bioDraws, PanelLikelihoodTrajectory, log, MonteCarlo
 
 from prepare import read_trip_choices, daily_costs, km_costs
 
@@ -28,8 +26,10 @@ if __name__ == "__main__":
     parser.add_argument("--est-price-perception-pt", help="Estimate price perception", action="store_true")
     parser.add_argument("--est-ride-alpha", help="Estimate ride detour parameter", action="store_true")
     parser.add_argument("--est-bike-effort", help="Estimate parameter for bike effort", action="store_true")
-    parser.add_argument("--est-dist", metavar="KEY=VALUE", help="Modes for which to estimate distance elasticity", nargs="+", type=str)
-    parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor", action="store_true")
+    parser.add_argument("--est-dist", metavar="KEY=VALUE", help="Modes for which to estimate distance elasticity",
+                        nargs="+", type=str)
+    parser.add_argument("--same-price-perception", help="Only estimate one fixed price perception factor",
+                        action="store_true")
 
     parser.add_argument("--no-income", help="Don't consider the income", action="store_true")
 
@@ -39,6 +39,11 @@ if __name__ == "__main__":
 
     # Convert all the columns to numeric
     df = ds.df * 1
+
+    # Needed as column for elasticities
+    for mode in ds.modes:
+        df[f"{mode}_daily_costs"] = daily_costs[mode]
+        df[f"{mode}_km_costs"] = km_costs[mode]
 
     database = db.Database("data/choices", df)
     v = database.variables
@@ -59,11 +64,13 @@ if __name__ == "__main__":
     UTIL_MONEY = Beta('UTIL_MONEY', 1, 0.3, 1.5, ESTIMATE if args.est_util_money else FIXED)
     BETA_PERFORMING = Beta('BETA_PERFORMING', 6.88, 1, 15, ESTIMATE if args.est_performing else FIXED)
 
-    BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', 1, 0, 1, ESTIMATE if args.est_price_perception_car else FIXED)
+    BETA_CAR_PRICE_PERCEPTION = Beta('BETA_CAR_PRICE_PERCEPTION', 1, 0, 1,
+                                     ESTIMATE if args.est_price_perception_car else FIXED)
     if args.same_price_perception:
         BETA_PT_PRICE_PERCEPTION = BETA_CAR_PRICE_PERCEPTION
     else:
-        BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', 1, 0, 1, ESTIMATE if args.est_price_perception_pt else FIXED)
+        BETA_PT_PRICE_PERCEPTION = Beta('BETA_PT_PRICE_PERCEPTION', 1, 0, 1,
+                                        ESTIMATE if args.est_price_perception_pt else FIXED)
 
     BETA_PT_SWITCHES = Beta('BETA_PT_SWITCHES', 1, 0, None, ESTIMATE if args.est_pt_switches else FIXED)
     BETA_BUS_USAGE = Beta('BETA_BUS_LEGS', 0, 0, None, ESTIMATE if args.est_bus_legs else FIXED)
@@ -86,12 +93,14 @@ if __name__ == "__main__":
 
     for i, mode in enumerate(ds.modes, 1):
         # Ride incurs double the cost as car, to account for the driver and passenger
-        u = ASC[mode] - BETA_PERFORMING * v[f"{mode}_hours"] * ( (1 + BETA_RIDE_ALPHA) if mode == "ride" else 1)
+        u = ASC[mode] - BETA_PERFORMING * v[f"{mode}_hours"] * ((1 + BETA_RIDE_ALPHA) if mode == "ride" else 1)
 
-        price = km_costs[mode] * v[f"{mode}_km"] * (BETA_RIDE_ALPHA if mode == "ride" else 1)
-        price += daily_costs[mode] * v["dist_weight"] * (BETA_CAR_PRICE_PERCEPTION if mode == "car" else BETA_PT_PRICE_PERCEPTION)
+        price = v[f"{mode}_km_costs"] * v[f"{mode}_km"] * (BETA_RIDE_ALPHA if mode == "ride" else 1)
+        price += v[f"{mode}_daily_costs"] * v["dist_weight"] * (
+            BETA_CAR_PRICE_PERCEPTION if mode == "car" else BETA_PT_PRICE_PERCEPTION
+        )
+
         u += price * UTIL_MONEY * (1 if args.no_income else (ds.global_income / v["income"]) ** EXP_INCOME)
-
         if mode == "pt":
             u -= v[f"{mode}_switches"] * BETA_PT_SWITCHES
             u -= v[f"{mode}_bus_legs"] * BETA_BUS_USAGE
@@ -153,21 +162,39 @@ if __name__ == "__main__":
     print(corr_matrix)
 
     probs = {f"Prob {ds.modes[i]}": models.logit(U, AV, i + 1) for i in range(len(ds.modes))}
+    probs["weight"] = v["weight"]
+
+    for i in range(len(ds.modes)):
+        mode = ds.modes[i]
+        prob = probs[f"Prob {mode}"]
+
+        direct_elas_time = Derive(prob, f"{mode}_hours") * v[f"{mode}_hours"] / prob
+
+        # The costs are negative, so we need to multiply by -1
+        direct_elas_cost = Derive(prob, f"{mode}_daily_costs") * -v[f"{mode}_daily_costs"] / prob
+        direct_elas_km_costs = Derive(prob, f"{mode}_km_costs") * -v[f"{mode}_km_costs"] / prob
+
+        probs[f"Direct elasticity {mode} time"] = direct_elas_time
+        probs[f"Direct elasticity {mode} daily costs"] = direct_elas_cost
+        probs[f"Direct elasticity {mode} km costs"] = direct_elas_km_costs
+
 
     simulation = bio.BIOGEME(database, probs)
 
     p = simulation.simulate(results.getBetaValues())
 
-    print("Simulated probabilities base-case")
+    # Calculate weighted probs
+    for i in range(len(ds.modes)):
+        mode = ds.modes[i]
 
-    print(ds.modes)
-    print(np.average(p, axis=0, weights=df["weight"]))
+        prob_weighted = p["weight"] * p[f"Prob {mode}"]
+        denom = prob_weighted.sum()
 
-    # Make bike faster
-    database.data.bike_hours *= 0.9
+        aggr = ((prob_weighted * p[f"Direct elasticity {mode} time"]) / denom).sum()
+        print("Aggregated direct elasticity of %s wrt to time: %.3f" % (mode, aggr))
 
-    simulation = bio.BIOGEME(database, probs)
-    p = simulation.simulate(results.getBetaValues())
+        aggr = ((prob_weighted * p[f"Direct elasticity {mode} daily costs"]) / denom).sum()
+        print("Aggregated direct elasticity of %s wrt to cost: %.3f" % (mode, aggr))
 
-    print("Simulated probabilities policy")
-    print(np.average(p, axis=0, weights=df["weight"]))
+        aggr = ((prob_weighted * p[f"Direct elasticity {mode} km costs"]) / denom).sum()
+        print("Aggregated direct elasticity of %s wrt to km costs: %.3f" % (mode, aggr))
