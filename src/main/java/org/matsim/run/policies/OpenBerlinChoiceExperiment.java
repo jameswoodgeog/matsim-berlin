@@ -201,7 +201,7 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 			VehicleType bike = scenario.getVehicles().getVehicleTypes().get(Id.create(TransportMode.bike, VehicleType.class));
 			bike.setMaximumVelocity(bike.getMaximumVelocity() + bikeSpeedOffset / 3.6);
 		} else if (bikeSpeedFactor != 1) {
-			log.info("Adjusting bike speed to {} %", bikeSpeedFactor * 100);
+			log.info("Adjusting bike speed to {}", bikeSpeedFactor * 100);
 
 			VehicleType bike = scenario.getVehicles().getVehicleTypes().get(Id.create(TransportMode.bike, VehicleType.class));
 			bike.setMaximumVelocity(bike.getMaximumVelocity() * bikeSpeedFactor);
