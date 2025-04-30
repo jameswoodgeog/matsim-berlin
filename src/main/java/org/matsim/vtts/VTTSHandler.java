@@ -28,6 +28,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 
+import com.google.inject.Inject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.commons.math.stat.StatUtils;
@@ -49,7 +50,9 @@ import org.matsim.contrib.dvrp.vrpagent.VrpAgentLogic;
 import org.matsim.core.gbl.Gbl;
 import org.matsim.core.population.PersonUtils;
 import org.matsim.core.population.PopulationUtils;
+import org.matsim.core.router.StageActivityTypeIdentifier;
 import org.matsim.core.scoring.functions.ScoringParameters;
+import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.core.utils.collections.Tuple;
 
 
@@ -70,14 +73,14 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	private static int noTripVTTSWarning = 0;
 	private static int noTripNrWarning = 0;
 
-	private final Scenario scenario;
+	@Inject private Scenario scenario;
 	private final VTTSCalculationMethod vttsCalculationMethod;
 	private int currentIteration;
 
 	private double globalAverageIncome;
 
 	private final Set<Id<Person>> personIdsToBeIgnored = new HashSet<>();
-	private final String stageActivitySubString;
+//	private final String stageActivitySubString;
 	private final String[] modesToBeSkipped;
 
 	private final Set<Id<Person>> departedPersonIds = new HashSet<>();
@@ -97,11 +100,16 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final double defaultVTTS_moneyPerHour; // for the car mode!
 
-	public VTTSHandler(Scenario scenario, String[] helpLegModes, String stageActivitySubString, VTTSCalculationMethod vttsCalculationMethod) {
+	@Inject private ScoringParametersForPerson scoringParametersForPerson;
+
+	@Inject
+	 public VTTSHandler( String[] helpLegModes ) {
+		// make non-public
 
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
 			log.warn("The marginal utility of money must not be 0.0. The VTTS is computed in Money per Time.");
 		}
+		vttsCalculationMethod = VTTSCalculationMethod.incomeDependentScoring ; // to remove
 		if (vttsCalculationMethod== VTTSCalculationMethod.noIncomeDependentScoring) {
 			log.warn("You are not using income for scoring ");
 		}
@@ -109,9 +117,9 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 			this.globalAverageIncome = computeAvgIncome(scenario.getPopulation());
 		}
 
-		this.vttsCalculationMethod = vttsCalculationMethod;
+//		this.vttsCalculationMethod = vttsCalculationMethod;
 		this.modesToBeSkipped = helpLegModes;
-		this.stageActivitySubString = stageActivitySubString;
+//		this.stageActivitySubString = stageActivitySubString;
 		this.scenario = scenario;
 		this.currentIteration = Integer.MIN_VALUE;
 		this.defaultVTTS_moneyPerHour =
@@ -180,7 +188,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	@Override
 	public void handleEvent(ActivityStartEvent event) {
 
-		if (isActivityToBeSkipped(event.getActType()) || this.personIdsToBeIgnored.contains(event.getPersonId())) {
+		if ( StageActivityTypeIdentifier.isStageActivity( event.getActType() ) || this.personIdsToBeIgnored.contains(event.getPersonId() )) {
 			// skip
 		} else {
 			this.personId2currentActivityStartTime.put(event.getPersonId(), event.getTime());
@@ -195,7 +203,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 			this.personIdsToBeIgnored.add(event.getPersonId());
 		}
 
-		if (isActivityToBeSkipped(event.getActType()) || this.personIdsToBeIgnored.contains(event.getPersonId())) {
+		if ( StageActivityTypeIdentifier.isStageActivity( event.getActType() ) || this.personIdsToBeIgnored.contains(event.getPersonId() )) {
 			// skip
 		} else {
 			if (this.personId2currentActivityStartTime.containsKey(event.getPersonId())) {
@@ -229,9 +237,13 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		}
 	}
 
-	private void computeVTTS(Id<Person> personId, double activityEndTime) {
+	private void computeVTTS(Id<Person> personId, double activityEndTime){
 
-		if (this.personId2currentTripMode.get(personId) == null) {
+		Person person = scenario.getPopulation().getPersons().get( personId );
+
+		this.scoringParametersForPerson.getScoringParameters( person ).marginalUtilityOfMoney;
+
+		if( this.personId2currentTripMode.get( personId ) == null ){
 			// No mode stored for this person and trip. This indicates that the current trip mode was skipped.
 			// Thus, do not compute any VTTS for this trip.
 			return;
@@ -239,48 +251,49 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		double activityDelayDisutilityOneSec = 0.;
 
 		// First, check if the plan completed is completed, i.e. if the agent has arrived at an activity
-		final Person person = this.scenario.getPopulation().getPersons().get( personId );
-		if (this.personId2currentActivityType.containsKey(personId ) && this.personId2currentActivityStartTime.containsKey(personId )) {
+		person = this.scenario.getPopulation().getPersons().get( personId );
+		if( this.personId2currentActivityType.containsKey( personId ) && this.personId2currentActivityStartTime.containsKey( personId ) ){
 			// the second condition was already tested earlier.
 
 			String subpop = PopulationUtils.getSubpopulation( person );
 
 			final org.matsim.vtts.MarginalSumScoringFunction marginalSumScoringFunction =
 					new org.matsim.vtts.MarginalSumScoringFunction(
-							new ScoringParameters.Builder(scenario.getConfig().scoring(), scenario.getConfig().scoring().getScoringParameters(subpop), scenario.getConfig().scenario()).build());
+							new ScoringParameters.Builder( scenario.getConfig().scoring(), scenario.getConfig().scoring().getScoringParameters( subpop ), scenario.getConfig().scenario() ).build() );
 
-			if (activityEndTime ==Double.NEGATIVE_INFINITY) {
+			if( activityEndTime == Double.NEGATIVE_INFINITY ){
 				// The end time is undefined...
 
 				// ... now handle the first and last OR overnight activity. This is figured out by the scoring function itself (depending on the activity types).
 
-				Activity activityMorning = PopulationUtils.createActivityFromLinkId(this.personId2firstActivityType.get(personId), null);
-				activityMorning.setEndTime(this.personId2firstActivityEndTime.get(personId));
+				Activity activityMorning = PopulationUtils.createActivityFromLinkId( this.personId2firstActivityType.get( personId ), null );
+				activityMorning.setEndTime( this.personId2firstActivityEndTime.get( personId ) );
 
-				Activity activityEvening = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
-				activityEvening.setStartTime(this.personId2currentActivityStartTime.get(personId));
+				Activity activityEvening = PopulationUtils.createActivityFromLinkId( this.personId2currentActivityType.get( personId ), null );
+				activityEvening.setStartTime( this.personId2currentActivityStartTime.get( personId ) );
 
-				activityDelayDisutilityOneSec = marginalSumScoringFunction.getOvernightActivityDelayDisutility(activityMorning, activityEvening, 1.0);
+				activityDelayDisutilityOneSec = marginalSumScoringFunction.getOvernightActivityDelayDisutility( activityMorning, activityEvening, 1.0 );
 
-			} else {
+			} else{
 				// The activity has an end time indicating a 'normal' activity.
 
-				Activity activity = PopulationUtils.createActivityFromLinkId(this.personId2currentActivityType.get(personId), null);
-				activity.setStartTime(this.personId2currentActivityStartTime.get(personId));
-				activity.setEndTime(activityEndTime);
-				activityDelayDisutilityOneSec = marginalSumScoringFunction.getNormalActivityDelayDisutility(activity, 1.0);
+				Activity activity = PopulationUtils.createActivityFromLinkId( this.personId2currentActivityType.get( personId ), null );
+				activity.setStartTime( this.personId2currentActivityStartTime.get( personId ) );
+				activity.setEndTime( activityEndTime );
+				activityDelayDisutilityOneSec = marginalSumScoringFunction.getNormalActivityDelayDisutility( activity, 1.0 );
 			}
 
-		} else {
+		} else{
 			// No, there is no information about the current activity which indicates that the trip (with the delay) was not completed.
 
-			if (incompletedPlanWarning <= 10) {
-				log.warn("Agent " + personId + " has not yet completed the plan/trip (the agent is probably stucking). Cannot compute the disutility of being late at this activity. "
-								 + "Something like the disutility of not arriving at the activity is required. Try to avoid this by setting a smaller stuck time period.");
-				log.warn("Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().scoring().getPerforming_utils_hr());
+			if( incompletedPlanWarning <= 10 ){
+				log.warn( "Agent " + personId + " has not yet completed the plan/trip (the agent is probably stucking). Cannot compute the disutility of being late at this activity. "
+								  + "Something like the disutility of not arriving at the activity is required. Try to avoid this by setting a smaller stuck time period." );
+				log.warn(
+						"Setting the disutilty of being delayed on the previous trip using the config parameters; assuming the marginal disutility of being delayed at the (hypothetical) activity to be equal to beta_performing: " + this.scenario.getConfig().scoring().getPerforming_utils_hr() );
 
-				if (incompletedPlanWarning == 10) {
-					log.warn(Gbl.FUTURE_SUPPRESSED);
+				if( incompletedPlanWarning == 10 ){
+					log.warn( Gbl.FUTURE_SUPPRESSED );
 				}
 				incompletedPlanWarning++;
 			}
@@ -289,50 +302,50 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 		// Calculate the agent's trip delay disutility.
 		// (Could be done similarly to the activity delay disutility. As long as it is computed linearly, the following should be okay.)
-		String mode = this.personId2currentTripMode.get(personId);
+		String mode = this.personId2currentTripMode.get( personId );
 		double marginalUtilityOfTraveling = 0.;
-		if (this.scenario.getConfig().scoring().getModes().get(mode) != null) {
-			marginalUtilityOfTraveling = this.scenario.getConfig().scoring().getModes().get(mode).getMarginalUtilityOfTraveling();
-		} else {
-			log.warn("Could not identify the marginal utility of traveling for mode " + mode + ". "
-							 + "Setting this value to zero. (Probably using subpopulations...)");
+		if( this.scenario.getConfig().scoring().getModes().get( mode ) != null ){
+			marginalUtilityOfTraveling = this.scenario.getConfig().scoring().getModes().get( mode ).getMarginalUtilityOfTraveling();
+		} else{
+			log.warn( "Could not identify the marginal utility of traveling for mode " + mode + ". "
+							  + "Setting this value to zero. (Probably using subpopulations...)" );
 		}
 		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
 		// Translate the disutility into monetary units.
 		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
 
-		if(this.vttsCalculationMethod.equals(VTTSCalculationMethod.incomeDependentScoring)) {
+		if( this.vttsCalculationMethod.equals( VTTSCalculationMethod.incomeDependentScoring ) ){
 			//if income dependet scoring is used, the marginal utility of money is specific to each agent#
 			// there must be a better way of getting the person specific marginal utility of money
-			if (PersonUtils.getIncome( person ) != null) {
+			if( PersonUtils.getIncome( person ) != null ){
 				double personalIncome = PersonUtils.getIncome( person );
 				double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
 				delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
-			} else {
+			} else{
 				//
 			}
 		}
 
 		// store the VTTS for analysis purposes
-		if (this.personId2VTTSh.containsKey(personId)) {
+		if( this.personId2VTTSh.containsKey( personId ) ){
 
-			this.personId2VTTSh.get(personId).add(delayCostPerSec_usingActivityDelayOneSec * 3600);
-			this.personId2TripNr2VTTSh.get(personId).put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600);
-			this.personId2TripNr2Mode.get(personId).put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
+			this.personId2VTTSh.get( personId ).add( delayCostPerSec_usingActivityDelayOneSec * 3600 );
+			this.personId2TripNr2VTTSh.get( personId ).put( this.personId2currentTripNr.get( personId ), delayCostPerSec_usingActivityDelayOneSec * 3600 );
+			this.personId2TripNr2Mode.get( personId ).put( this.personId2currentTripNr.get( personId ), this.personId2currentTripMode.get( personId ) );
 
-		} else {
+		} else{
 
 			List<Double> vTTSh = new ArrayList<>();
-			vTTSh.add(delayCostPerSec_usingActivityDelayOneSec * 3600.);
-			this.personId2VTTSh.put(personId, vTTSh);
+			vTTSh.add( delayCostPerSec_usingActivityDelayOneSec * 3600. );
+			this.personId2VTTSh.put( personId, vTTSh );
 
 			Map<Integer, Double> tripNr2VTTSh = new HashMap<>();
-			tripNr2VTTSh.put(this.personId2currentTripNr.get(personId), delayCostPerSec_usingActivityDelayOneSec * 3600.);
-			this.personId2TripNr2VTTSh.put(personId, tripNr2VTTSh);
+			tripNr2VTTSh.put( this.personId2currentTripNr.get( personId ), delayCostPerSec_usingActivityDelayOneSec * 3600. );
+			this.personId2TripNr2VTTSh.put( personId, tripNr2VTTSh );
 
 			Map<Integer, String> tripNr2Mode = new HashMap<>();
-			tripNr2Mode.put(this.personId2currentTripNr.get(personId), this.personId2currentTripMode.get(personId));
-			this.personId2TripNr2Mode.put(personId, tripNr2Mode);
+			tripNr2Mode.put( this.personId2currentTripNr.get( personId ), this.personId2currentTripMode.get( personId ) );
+			this.personId2TripNr2Mode.put( personId, tripNr2Mode );
 		}
 	}
 
@@ -652,14 +665,6 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 		}
 		return false;
-	}
-
-	private boolean isActivityToBeSkipped(String actType) {
-		if (actType.contains(stageActivitySubString)) {
-			return true;
-		} else {
-			return false;
-		}
 	}
 
 

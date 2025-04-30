@@ -54,14 +54,18 @@ public class TestVTTSScoring {
 		createTestPopulation(scenario);
 
 		Controler controler = new Controler(scenario);
-		VTTSHandler vttsHandler= new VTTSHandler(scenario, new String[]{"freight"}, "staging", noIncomeDependentScoring);
-		controler.addOverridingModule(new AbstractModule() {
-			@Override
-			public void install() {
-				addEventHandlerBinding().toInstance(vttsHandler);
+
+		controler.addOverridingModule( new AbstractModule(){
+			@Override public void install(){
+				this.addEventHandlerBinding().toInstance( new VTTSHandler( new String[]{"freight"} ) );
+//				this.addEventHandlerBinding().to( VTTSHandler.class ); // this would be better
 			}
-		});
+		} );
+
 		controler.run();
+
+		VTTSHandler vttsHandler = controler.getInjector().getInstance( VTTSHandler.class );
+
 		vttsHandler.computeFinalVTTS();
 		vttsHandler.printVTTS(controler.getConfig().controller().getOutputDirectory()+"vtts.csv");
 		/*
