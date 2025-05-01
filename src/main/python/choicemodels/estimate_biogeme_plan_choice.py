@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("--input", help="Path to the input file", type=str,
                         default="../../../plan-choices-subtour_70.csv")
     parser.add_argument("--name", help="Model name prefix in the output", type=str, default="")
-    parser.add_argument("--mxl-modes", help="Modes to use mixed logit for", nargs="+", type=str,
+    parser.add_argument("--mxl-modes", help="Modes to use mixed logit for", nargs="*", type=set,
                         default=["pt", "bike", "ride", "car"])
     parser.add_argument("--mxl-distribution", help="Mixing distribution", default="NORMAL_ANTI",
                         choices=["NORMAL_ANTI", "LOG_NORMAL", "GUMBEL", "GUMBEL_SCALE", "TN", "TN_SCALE", "CAUCHY",
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     BETA_BUS_LEGS = Beta('BETA_BUS_LEGS', 0, None, 0, ESTIMATE if args.est_bus_legs else FIXED)
     BETA_PT_SWITCHES = Beta('BETA_PT_SWITCHES', -1, None, 0, ESTIMATE if args.est_pt_switches else FIXED)
 
-    is_est_car = "car" in args.mxl_modes
+    is_est_car = "car" in args.mxl_modes or args.mxl_param == "none"
 
     for mode in ds.modes:
 
