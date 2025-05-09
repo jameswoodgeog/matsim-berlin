@@ -20,7 +20,7 @@ public final class TransitRouteToMode {
 			for (TransitRoute route : line.getRoutes().values()) {
 				Object type = route.getAttributes().getAttribute("simple_route_type");
 				if (type != null) {
-					routeToMode.put(route.getId(), type.toString());
+					routeToMode.put(route.getId(), type.toString().intern());
 				}
 			}
 		}

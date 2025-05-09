@@ -1,4 +1,4 @@
-package org.matsim.run.scoring;
+package org.matsim.run.scoring.experimental;
 
 import com.google.common.collect.Iterables;
 import org.matsim.core.config.ConfigGroup;
@@ -33,10 +33,6 @@ public final class AdvancedScoringConfigGroup extends ReflectiveConfigGroup {
 	@Parameter
 	@Comment("Scale for pseudo random errors. 0 disables it completely.")
 	public double pseudoRamdomScale = 0;
-
-	@Parameter
-	@Comment("Distribution of the random error terms.")
-	public VariationType pseudoRandomDistribution = VariationType.normal;
 
 	private final List<ScoringParameters> scoringParameters = new ArrayList<>();
 

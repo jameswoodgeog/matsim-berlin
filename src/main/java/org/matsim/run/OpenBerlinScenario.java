@@ -26,13 +26,12 @@ import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.router.costcalculators.OnlyTimeDependentTravelDisutilityFactory;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
 import org.matsim.core.router.util.TravelTime;
-import org.matsim.core.scoring.functions.ScoringParametersForPerson;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.AdvancedScoringModule;
+import org.matsim.run.scoring.BerlinScoringModule;
+import org.matsim.run.scoring.experimental.AdvancedScoringConfigGroup;
+import org.matsim.run.scoring.experimental.AdvancedScoringModule;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import picocli.CommandLine;
-import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import java.util.List;
 
@@ -87,8 +86,6 @@ public class OpenBerlinScenario extends MATSimApplication {
 
 		config.qsim().setUsingTravelTimeCheckInTeleportation(true);
 
-		// overwrite ride scoring params with values derived from car
-		RideScoringParamsFromCarParams.setRideScoringParamsBasedOnCarParams(config.scoring(), 1.0);
 		Activities.addScoringParams(config, true);
 
 		// Required for all calibration strategies
@@ -155,25 +152,17 @@ public class OpenBerlinScenario extends MATSimApplication {
 	protected void prepareControler(Controler controler) {
 
 		controler.addOverridingModule(new SimWrapperModule());
-
 		controler.addOverridingModule(new TravelTimeBinding());
-
 		controler.addOverridingModule(new QsimTimingModule());
 
-		// AdvancedScoring is specific to matsim-berlin!
+		// AdvancedScoring can be used for experiments or calibration, but is not needed to run the calibrated scenario.
 		if (ConfigUtils.hasModule(controler.getConfig(), AdvancedScoringConfigGroup.class)) {
 			controler.addOverridingModule(new AdvancedScoringModule());
 			controler.getConfig().scoring().setExplainScores(true);
 		} else {
-			// if the above config group is not present we still need income dependent scoring
-			// this implementation also allows for person specific asc
-			controler.addOverridingModule(new AbstractModule() {
-				@Override
-				public void install() {
-					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
-				}
-			});
+			controler.addOverridingModule(new BerlinScoringModule());
 		}
+
 		controler.addOverridingModule(new PersonMoneyEventsAnalysisModule());
 	}
 

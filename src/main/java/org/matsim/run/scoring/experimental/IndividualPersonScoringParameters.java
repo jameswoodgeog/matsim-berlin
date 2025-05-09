@@ -1,4 +1,4 @@
-package org.matsim.run.scoring;
+package org.matsim.run.scoring.experimental;
 
 import com.google.common.primitives.Longs;
 import com.google.inject.Inject;

@@ -1,4 +1,4 @@
-package org.matsim.run.scoring;
+package org.matsim.run.scoring.experimental;
 
 import com.google.inject.Inject;
 import it.unimi.dsi.fastutil.objects.Object2DoubleMap;

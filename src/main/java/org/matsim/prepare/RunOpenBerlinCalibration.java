@@ -62,11 +62,11 @@ import org.matsim.prepare.opt.ExtractPlanIndexFromType;
 import org.matsim.prepare.opt.RunCountOptimization;
 import org.matsim.prepare.opt.SelectPlansFromIndex;
 import org.matsim.prepare.population.*;
-import org.matsim.prepare.transit.EndlessCircleLineScheduleModifier;
+import org.matsim.prepare.pt.EndlessCircleLineScheduleModifier;
 import org.matsim.run.Activities;
 import org.matsim.run.OpenBerlinScenario;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.AdvancedScoringModule;
+import org.matsim.run.scoring.experimental.AdvancedScoringConfigGroup;
+import org.matsim.run.scoring.experimental.AdvancedScoringModule;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import org.matsim.simwrapper.SimWrapperModule;
 import org.matsim.smallScaleCommercialTrafficGeneration.GenerateSmallScaleCommercialTrafficDemand;
@@ -93,7 +93,7 @@ import java.util.stream.Collectors;
 	CreateCountsFromGeoPortalBerlin.class, CreateCountsFromVMZOld.class, CreateCountsFromVMZ.class, ReprojectNetwork.class, RunActivitySampling.class,
 	MergePlans.class, SplitActivityTypesDuration.class, CleanPopulation.class, CleanAttributes.class,
 	GenerateSmallScaleCommercialTrafficDemand.class, CreateDataDistributionOfStructureData.class, LinkCapacityFromMeasurements.class,
-	RunCountOptimization.class, SelectPlansFromIndex.class, ExtractPlanIndexFromType.class, AssignReferencePopulation.class,
+	RunCountOptimization.class, SelectPlansFromIndex.class, ExtractPlanIndexFromType.class, AssignReferencePopulation.class, PrepareTasteVariations.class,
 	ExtractRelevantFreightTrips.class, CheckCarAvailability.class, FixSubtourModes.class, ComputeTripChoices.class, ComputePlanChoices.class,
 	ApplyNetworkParams.class, SetCarAvailabilityByAge.class, CreateDrtVehicles.class, EndlessCircleLineScheduleModifier.class
 })

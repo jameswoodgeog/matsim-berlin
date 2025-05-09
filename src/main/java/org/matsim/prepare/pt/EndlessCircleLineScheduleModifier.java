@@ -17,7 +17,7 @@
  *                                                                         *
  * *********************************************************************** */
 
-package org.matsim.prepare.transit;
+package org.matsim.prepare.pt;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

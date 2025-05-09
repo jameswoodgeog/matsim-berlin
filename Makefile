@@ -17,6 +17,7 @@ osmosis := osmosis/bin/osmosis
 sc := java -Xmx$(MEMORY) -XX:+UseParallelGC -cp $(JAR) org.matsim.prepare.RunOpenBerlinCalibration
 
 .PHONY: prepare
+.DELETE_ON_ERROR:
 
 $(JAR):
 	mvn package
@@ -325,6 +326,9 @@ $p/berlin-$V-10pct.plans.xml.gz:
 	 --plans mode-choice-10pct-baseline/runs/008/008.output_plans.xml.gz\
 	 --remove-unselected-plans\
 	 --output $@
+
+	$(sc) prepare taste-variations\
+ 	 --input $@ --output $@
 
 	$(sc) prepare downsample-population $@\
 		--sample-size 0.1\

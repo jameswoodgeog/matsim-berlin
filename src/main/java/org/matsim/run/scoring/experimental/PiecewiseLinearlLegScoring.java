@@ -18,7 +18,7 @@
  *                                                                         *
  * *********************************************************************** */
 
-package org.matsim.run.scoring;
+package org.matsim.run.scoring.experimental;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +34,7 @@ import org.matsim.core.scoring.functions.ModeUtilityParameters;
 import org.matsim.core.scoring.functions.ScoringParameters;
 import org.matsim.pt.PtConstants;
 import org.matsim.pt.routes.DefaultTransitPassengerRoute;
+import org.matsim.run.scoring.TransitRouteToMode;
 
 import java.util.HashSet;
 import java.util.Set;

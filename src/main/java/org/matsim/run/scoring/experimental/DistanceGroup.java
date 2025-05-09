@@ -1,4 +1,4 @@
-package org.matsim.run.scoring;
+package org.matsim.run.scoring.experimental;
 
 /**
  * Store distance group.

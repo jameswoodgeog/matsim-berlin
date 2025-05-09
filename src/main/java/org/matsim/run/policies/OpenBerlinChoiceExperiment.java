@@ -23,14 +23,10 @@ import org.matsim.modechoice.InformedModeChoiceConfigGroup;
 import org.matsim.modechoice.InformedModeChoiceModule;
 import org.matsim.modechoice.ModeOptions;
 import org.matsim.modechoice.constraints.RelaxedMassConservationConstraint;
-import org.matsim.modechoice.estimators.DefaultActivityEstimator;
-import org.matsim.modechoice.estimators.DefaultLegScoreEstimator;
-import org.matsim.modechoice.estimators.FixedCostsEstimator;
-import org.matsim.modechoice.estimators.PtTripEstimator;
+import org.matsim.modechoice.estimators.*;
 import org.matsim.modechoice.pruning.PlanScoreThresholdPruner;
 import org.matsim.run.OpenBerlinScenario;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.PseudoRandomTripScoreEstimator;
+import org.matsim.run.scoring.experimental.AdvancedScoringConfigGroup;
 import org.matsim.vehicles.VehicleType;
 import picocli.CommandLine;
 

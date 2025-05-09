@@ -1,6 +1,7 @@
 package org.matsim.prepare.choices;
 
 import com.google.inject.Injector;
+import jakarta.annotation.Nullable;
 import me.tongfei.progressbar.ProgressBar;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -37,7 +38,6 @@ import org.matsim.run.scoring.TransitRouteToMode;
 import org.matsim.simwrapper.SimWrapperConfigGroup;
 import picocli.CommandLine;
 
-import javax.annotation.Nullable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
