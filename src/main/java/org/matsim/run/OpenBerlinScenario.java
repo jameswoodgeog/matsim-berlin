@@ -15,7 +15,6 @@ import org.matsim.contrib.bicycle.BicycleTravelTime;
 import org.matsim.contrib.emissions.HbefaRoadTypeMapping;
 import org.matsim.contrib.emissions.OsmHbefaMapping;
 import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
-import org.matsim.contrib.vsp.scoring.RideScoringParamsFromCarParams;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
@@ -53,7 +52,7 @@ public class OpenBerlinScenario extends MATSimApplication {
 
 	@CommandLine.Option(names = "--plan-selector",
 		description = "Plan selector to use.",
-		defaultValue = DefaultPlanStrategiesModule.DefaultSelector.ChangeExpBeta)
+		defaultValue = DefaultPlanStrategiesModule.DefaultSelector.BestScore)
 	private String planSelector;
 
 	public OpenBerlinScenario() {
@@ -120,6 +119,7 @@ public class OpenBerlinScenario extends MATSimApplication {
 		);
 
 		// Need to switch to warning for best score
+		// best score is used because the pseudo random error term are added explicitly in the scoring
 		if (planSelector.equals(DefaultPlanStrategiesModule.DefaultSelector.BestScore)) {
 			config.vspExperimental().setVspDefaultsCheckingLevel(VspExperimentalConfigGroup.VspDefaultsCheckingLevel.warn);
 		}
@@ -189,7 +189,6 @@ public class OpenBerlinScenario extends MATSimApplication {
 			if (!carOnly) {
 				addTravelTimeBinding("freight").to(Key.get(TravelTime.class, Names.named(TransportMode.truck)));
 				addTravelDisutilityFactoryBinding("freight").to(Key.get(TravelDisutilityFactory.class, Names.named(TransportMode.truck)));
-
 
 				bind(BicycleLinkSpeedCalculator.class).to(BicycleLinkSpeedCalculatorDefaultImpl.class);
 
