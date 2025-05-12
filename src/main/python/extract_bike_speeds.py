@@ -26,6 +26,7 @@ if __name__ == "__main__":
     t = result.trips
 
     t["speed"] = (t.gis_length * 3600) / (t.duration * 60)
-    t = t[t.main_mode == TripMode.BIKE]
 
-    t.to_csv('bike_speeds.csv', columns=["t_weight", "age", "speed"], index=False)
+    t[t.main_mode == TripMode.BIKE].to_csv('bike_speeds.csv', columns=["t_weight", "age", "speed"], index=False)
+
+    t[t.main_mode == TripMode.WALK].to_csv('walk_speeds.csv', columns=["t_weight", "age", "speed"], index=False)

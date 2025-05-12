@@ -74,3 +74,7 @@ if __name__ == "__main__":
     print(aggr)
 
     print("Mobile persons", result.persons[result.persons.mobile_on_day == True].p_weight.sum() / result.persons.p_weight.sum())
+
+    aggr = t.groupby(["main_mode", "age"]).agg(kmh=("speed", wm), dist=("gis_length", wm))
+    print("Avg per mode and age")
+    print(aggr)
