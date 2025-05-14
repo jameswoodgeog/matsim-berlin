@@ -6,6 +6,9 @@ import org.matsim.analysis.QsimTimingModule;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
 import org.matsim.application.MATSimApplication;
 import org.matsim.application.options.SampleOptions;
 import org.matsim.contrib.bicycle.BicycleConfigGroup;
@@ -22,6 +25,7 @@ import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
+import org.matsim.core.router.TripStructureUtils;
 import org.matsim.core.router.costcalculators.OnlyTimeDependentTravelDisutilityFactory;
 import org.matsim.core.router.costcalculators.TravelDisutilityFactory;
 import org.matsim.core.router.util.TravelTime;
@@ -146,6 +150,18 @@ public class OpenBerlinScenario extends MATSimApplication {
 		// add hbefa link attributes.
 		HbefaRoadTypeMapping roadTypeMapping = OsmHbefaMapping.build();
 		roadTypeMapping.addHbefaMappings(scenario.getNetwork());
+
+		// Force the update of all bike travel times, otherwise bike speeds would only update once a leg is routed
+		for (Person person : scenario.getPopulation().getPersons().values()) {
+			for (Plan plan : person.getPlans()) {
+				for (Leg leg : TripStructureUtils.getLegs(plan)) {
+					if (leg.getMode().equals(TransportMode.bike)) {
+						leg.setRoute(null);
+						leg.setTravelTimeUndefined();
+					}
+				}
+			}
+		}
 	}
 
 	@Override

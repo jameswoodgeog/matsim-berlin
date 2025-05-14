@@ -202,22 +202,6 @@ public class OpenBerlinChoiceExperiment extends OpenBerlinScenario {
 			VehicleType bike = scenario.getVehicles().getVehicleTypes().get(Id.create(TransportMode.bike, VehicleType.class));
 			bike.setMaximumVelocity(bike.getMaximumVelocity() * bikeSpeedFactor);
 		}
-
-
-		// If bike speed is adjusted, we need to remove all bike routes and travel times
-		// These times will be recalculated by the router
-		if (bikeSpeedOffset != 0 || bikeSpeedFactor != 1) {
-			for (Person person : scenario.getPopulation().getPersons().values()) {
-				for (Plan plan : person.getPlans()) {
-					for (Leg leg : TripStructureUtils.getLegs(plan)) {
-						if (leg.getMode().equals(TransportMode.bike)) {
-							leg.setRoute(null);
-							leg.setTravelTimeUndefined();
-						}
-					}
-				}
-			}
-		}
 	}
 
 
