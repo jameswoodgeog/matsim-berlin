@@ -8,16 +8,22 @@
 
 ## About this project
 
-This repository provides an open MATSim transport model for Berlin, provided by the [Transport Systems Planning and Transport Telematics group](https://www.vsp.tu-berlin.de) of [Technische Universität Berlin](http://www.tu-berlin.de). Please reference/cite the scenario based on <a rel="license" href="https://doi.org/10.1016/j.procs.2019.04.120">this paper</a>.
+This repository provides an open MATSim transport model for Berlin, provided by the [Transport Systems Planning and Transport Telematics group](https://www.vsp.tu-berlin.de) of [Technische Universität Berlin](http://www.tu-berlin.de). 
+For further information, refer to the paper under the [Citation](#Citation) section.
 
 <a rel="TU Berlin" href="https://www.vsp.tu-berlin.de"><img src="https://svn.vsp.tu-berlin.de/repos/public-svn/ueber_uns/logo/TU_BERLIN_Logo_Lang_RGB_SR_rot.svg" width="25%"/></a>
 
 Currently, there are multiple versions of the MATSim Open Berlin model:
 
-### 10pct scenario (`input/v6.4`)
+### 10pct scenario (`input/v7.0`)
 
 This scenario contains a 10pct, 3pct and 1pct sample of the Greater Berlin population; road capacities are accordingly reduced. The scenario is calibrated taking into consideration the traffic counts, modal split and mode-specific trip distance distributions.
 
+## Citation
+
+If you use the MATSim Open Berlin Scenario in your work, please cite the following paper:
+
+> Rakow, C., Kreuschner, M., & Nagel, K. (2025). Advancing the MATSim Open Berlin Scenario: Improvements in Transport Scenario Generation and Calibration Methods. *Transportation Research Procedia*, 86, 732–739. https://doi.org/10.1016/j.trpro.2025.04.091
 
 ## Licenses
 
@@ -39,14 +45,14 @@ Handling of large files within git is not without problems (git lfs files are no
 
 1. Open SimWrapper at https://simwrapper.github.io/site/ .
 1. Select Explore Data Sources -> VSP Public-SVN .
-1. Navigate to de -> berlin -> berlin-v6.4 -> output (https://simwrapper.github.io/site/public/de/berlin/berlin-v6.4/output/berlin-v6.4-10pct/).
+1. Navigate to de -> berlin -> berlin-v7.0 -> output (https://simwrapper.github.io/site/public/de/berlin/berlin-v7.0/output/berlin-v7.0-10pct/).
 1. Enjoy the dashboards and visualizations.
 
 ### Run VIA on output files
 
 1. Get VIA from https://www.simunto.com/via/.  (There is a free license for a small number of agents; that will probably work but only display a small number of vehicles/agents.)
 1. Go to https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/ .
-1. Decide for a scenario that you find interesting (e.g. `berlin-v6.4`) and go into that directory.
+1. Decide for a scenario that you find interesting (e.g. `berlin-v7.0`) and go into that directory.
 1. Inside there, look for an `output-*` directory that you find interesting and go into that directory.
 1. Download `*.output_network.xml.gz` and `*.output_events.xml.gz`.  Best make sure that they do not uncompress, e.g. by "Download linked file as ...".
 1. Get these files into VIA.  This can be achieved in various ways; one is to open VIA and then drag the files from a file browser into VIA.
@@ -119,9 +125,7 @@ java -jar [FILENAME].jar
 </details>
 
 ---
-## More information
 
-For more information about MATSim, see here: https://www.matsim.org/
 
 ## Internal documentation
 
