@@ -17,9 +17,6 @@
  *                                                                         *
  * *********************************************************************** */
 
-/**
- *
- */
 package org.matsim.vtts;
 
 import java.io.BufferedWriter;
@@ -73,15 +70,11 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	private static int noTripVTTSWarning = 0;
 	private static int noTripNrWarning = 0;
 
-	@Inject private Scenario scenario;
-	private final VTTSCalculationMethod vttsCalculationMethod;
+	private Scenario scenario;
 	private int currentIteration;
 
-	private double globalAverageIncome;
 
 	private final Set<Id<Person>> personIdsToBeIgnored = new HashSet<>();
-//	private final String stageActivitySubString;
-//	private final String[] modesToBeSkipped;
 
 	private final Set<Id<Person>> departedPersonIds = new HashSet<>();
 	private final Map<Id<Person>, Double> personId2currentActivityStartTime = new HashMap<>();
@@ -109,13 +102,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
 			log.warn("The marginal utility of money must not be 0.0. The VTTS is computed in Money per Time.");
 		}
-		vttsCalculationMethod = VTTSCalculationMethod.incomeDependentScoring ; // to remove
-		if (vttsCalculationMethod== VTTSCalculationMethod.noIncomeDependentScoring) {
-			log.warn("You are not using income for scoring ");
-		}
-		if (vttsCalculationMethod==VTTSCalculationMethod.incomeDependentScoring) {
-			this.globalAverageIncome = computeAvgIncome(scenario.getPopulation());
-		}
+
 
 //		this.vttsCalculationMethod = vttsCalculationMethod;
 //		this.modesToBeSkipped = helpLegModes;
@@ -313,18 +300,6 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
 		// Translate the disutility into monetary units.
 		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
-
-		if( this.vttsCalculationMethod.equals( VTTSCalculationMethod.incomeDependentScoring ) ){
-			//if income dependet scoring is used, the marginal utility of money is specific to each agent#
-			// there must be a better way of getting the person specific marginal utility of money
-			if( PersonUtils.getIncome( person ) != null ){
-				double personalIncome = PersonUtils.getIncome( person );
-				double personSpecificMarginalUtilityOfMoney = scenario.getConfig().scoring().getMarginalUtilityOfMoney() * globalAverageIncome / personalIncome;
-				delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / personSpecificMarginalUtilityOfMoney;
-			} else{
-				//
-			}
-		}
 
 		// store the VTTS for analysis purposes
 		if( this.personId2VTTSh.containsKey( personId ) ){
