@@ -35,7 +35,7 @@ public class RandomPlanGenerator implements CandidateGenerator {
 		// This changes the internal state to randomize the estimates
 		for (Map.Entry<String, List<ModeEstimate>> entry : planModel.getEstimates().entrySet()) {
 			for (ModeEstimate est : entry.getValue()) {
-				double[] utils = est.getEstimates();
+				double[] utils = est.getLegEstimates();
 				if (utils != null)
 					for (int i = 0; i < utils.length; i++) {
 						utils[i] = -rnd.nextDouble();
