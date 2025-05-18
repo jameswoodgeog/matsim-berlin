@@ -57,8 +57,8 @@ public class TestVTTSScoring {
 
 		controler.addOverridingModule( new AbstractModule(){
 			@Override public void install(){
-				this.addEventHandlerBinding().toInstance( new VTTSHandler( new String[]{"freight"} ) );
-//				this.addEventHandlerBinding().to( VTTSHandler.class ); // this would be better
+				//this.addEventHandlerBinding().toInstance( new VTTSHandler( new String[]{"freight"} ) );
+				this.addEventHandlerBinding().to( VTTSHandler.class ); // this would be better
 			}
 		} );
 

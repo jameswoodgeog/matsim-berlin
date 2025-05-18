@@ -81,7 +81,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final Set<Id<Person>> personIdsToBeIgnored = new HashSet<>();
 //	private final String stageActivitySubString;
-	private final String[] modesToBeSkipped;
+//	private final String[] modesToBeSkipped;
 
 	private final Set<Id<Person>> departedPersonIds = new HashSet<>();
 	private final Map<Id<Person>, Double> personId2currentActivityStartTime = new HashMap<>();
@@ -100,10 +100,10 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final double defaultVTTS_moneyPerHour; // for the car mode!
 
-	@Inject private ScoringParametersForPerson scoringParametersForPerson;
+	private ScoringParametersForPerson scoringParametersForPerson;
 
 	@Inject
-	 public VTTSHandler( String[] helpLegModes ) {
+	 public VTTSHandler( Scenario scenario, ScoringParametersForPerson scoringParametersForPerson ) {
 		// make non-public
 
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
@@ -118,7 +118,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		}
 
 //		this.vttsCalculationMethod = vttsCalculationMethod;
-		this.modesToBeSkipped = helpLegModes;
+//		this.modesToBeSkipped = helpLegModes;
 //		this.stageActivitySubString = stageActivitySubString;
 		this.scenario = scenario;
 		this.currentIteration = Integer.MIN_VALUE;
@@ -241,7 +241,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 		Person person = scenario.getPopulation().getPersons().get( personId );
 
-		this.scoringParametersForPerson.getScoringParameters( person ).marginalUtilityOfMoney;
+	//	this.scoringParametersForPerson.getScoringParameters( person ).marginalUtilityOfMoney;
 
 		if( this.personId2currentTripMode.get( personId ) == null ){
 			// No mode stored for this person and trip. This indicates that the current trip mode was skipped.
@@ -655,7 +655,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	}
 
 	private boolean isModeToBeSkipped(String legMode) {
-		for (String modeToBeSkipped : this.modesToBeSkipped) {
+		/*for (String modeToBeSkipped : this.modesToBeSkipped) {
 			if (legMode==null) {
 				return true;
 			}
@@ -663,7 +663,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 				return true;
 			}
 
-		}
+		} */
 		return false;
 	}
 

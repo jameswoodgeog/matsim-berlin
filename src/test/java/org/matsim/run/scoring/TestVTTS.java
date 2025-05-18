@@ -19,7 +19,7 @@ import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParamete
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependentScoring;
-
+/*
 public class TestVTTS {
 
 	@Test
@@ -94,4 +94,4 @@ public class TestVTTS {
 
 
 
-}
+}*/

@@ -8,7 +8,7 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import picocli.CommandLine;
-
+/*
 public class RunVTTSAnalysis implements MATSimAppCommand {
 
 	@CommandLine.Option(names = "--events", description = "Path to events file", required = true)
@@ -52,3 +52,4 @@ public class RunVTTSAnalysis implements MATSimAppCommand {
 		return 0;
 	}
 }
+*/
