@@ -95,6 +95,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final ScoringParametersForPerson scoringParametersForPerson;
 
+
 	@Inject
 	 public VTTSHandler( Scenario scenario, ScoringParametersForPerson scoringParametersForPerson ) {
 		// make non-public
@@ -301,7 +302,8 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
 
 		// Translate the disutility into monetary units.
-		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / scoringParametersForPerson.getScoringParameters(scenario.getPopulation().getPersons().get(personId)).marginalUtilityOfMoney;
+		double marginalUtilityOfMoney = scoringParametersForPerson.getScoringParameters(scenario.getPopulation().getPersons().get(personId)).marginalUtilityOfMoney;
+		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / marginalUtilityOfMoney;
 
 		// store the VTTS for analysis purposes
 		if( this.personId2VTTSh.containsKey( personId ) ){
