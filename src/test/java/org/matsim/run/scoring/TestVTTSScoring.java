@@ -39,12 +39,14 @@ public class TestVTTSScoring {
 		config.scoring().getOrCreateModeParams(TransportMode.car).setMarginalUtilityOfTraveling(0);
 
 		ScoringConfigGroup.ActivityParams paramsWork = new ScoringConfigGroup.ActivityParams();
-		paramsWork.setTypicalDuration(10);
+		// eight hours
+		paramsWork.setTypicalDuration(28800);
 		paramsWork.setActivityType("work");
 
 		ScoringConfigGroup.ActivityParams paramsHome = new ScoringConfigGroup.ActivityParams();
 		paramsHome.setActivityType("home");
-		paramsHome.setTypicalDuration(10);
+		// twelve hours of home activity
+		paramsHome.setTypicalDuration(43200);
 		config.scoring().addActivityParams(paramsHome);
 		config.scoring().addActivityParams(paramsWork);
 		config.scoring().getScoringParameters(null).setLateArrival_utils_hr(0.);
@@ -73,18 +75,16 @@ public class TestVTTSScoring {
 		vttsHandler.computeFinalVTTS();
 		vttsHandler.printVTTS(controler.getConfig().controller().getOutputDirectory()+"vtts.csv");
 		/*
-		this is the average between the work activity which is exact the typical duration --> 5.718610788259497
-		and the home activity which is a lot longer then the typical duration --> 7.215831535289929E-4
+		this is the average between the work activity which is exact the typical duration --> 6.001979820359793
+		and the home activity which is a lot longer then the typical duration --> 4.76729108633549
 		*/
-        assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("perfectDuration"))).isEqualTo(2.859666185706513);
+        assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("perfectDuration"))).isEqualTo(5.3846354533476415);
 
 		/*
-		this is the average between the work activity which is below the typical duration --> 10.939293407637269 --> higher than the default of 6
-		and the home activity which is a lot longer then the typical duration --> 7.215397658355549E-4
+		this is the average between the work activity which is below the typical duration --> 8.811606029321695 --> higher than the default of 6
+		and the home activity which is a lot longer then the typical duration --> 4.0786461161928855
 		*/
-		//assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("timePressure"))).isEqualTo(22.309690970751944);
-		//TODO need to understand why it changed!!
-		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("timePressure"))).isEqualTo(5.4700074737015525);
+		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("timePressure"))).isEqualTo(6.44512607275729);
 
 	}
 
@@ -96,9 +96,9 @@ public class TestVTTSScoring {
 		Activity activityHome = scenario.getPopulation().getFactory().createActivityFromLinkId("home", Id.createLinkId("1"));
 		activityHome.setEndTime(10.0);
 		Activity activityWork = scenario.getPopulation().getFactory().createActivityFromLinkId("work", Id.createLinkId("6"));
-		activityWork.setEndTime(380.0);
+		activityWork.setEndTime(29160.0);
 		Activity activityHome2 = scenario.getPopulation().getFactory().createActivityFromLinkId("home", Id.createLinkId("1"));
-		activityHome2.setEndTime(9000.0);
+		activityHome2.setEndTime(36360.0);
 
 		plan.addActivity(activityHome);
 		//360 seconds travel time
@@ -114,9 +114,9 @@ public class TestVTTSScoring {
 		Plan planForTimePressureAgent = population.getFactory().createPlan();
 		Activity activityHomeStartLater = scenario.getPopulation().getFactory().createActivityFromLinkId("home", Id.createLinkId("1"));
 		activityHomeStartLater.setEndTime(30.0);
-		//travel time still 360 seconds --> agent performs activity only for 5 secs --> higher vtts
+		//travel time still 360 seconds --> agent performs activity shorter, below typical duration --> higher vtts
 		Activity activityWorkStartLater = scenario.getPopulation().getFactory().createActivityFromLinkId("work", Id.createLinkId("6"));
-		activityWorkStartLater.setEndTime(395.0);
+		activityWorkStartLater.setEndTime(20000.0);
 		planForTimePressureAgent.addActivity(activityHomeStartLater);
 		planForTimePressureAgent.addLeg(population.getFactory().createLeg(TransportMode.car));
 		planForTimePressureAgent.addActivity(activityWorkStartLater);
@@ -125,6 +125,5 @@ public class TestVTTSScoring {
 		personThatIsUnderTimePressure.addPlan(planForTimePressureAgent);
 		population.addPerson(personThatIsUnderTimePressure);
 	}
-
 
 }
