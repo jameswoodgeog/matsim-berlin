@@ -21,7 +21,7 @@ import org.matsim.examples.ExamplesUtils;
 import org.matsim.vtts.VTTSHandler;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependentScoring;
+
 
 public class TestVTTSScoring {
 
@@ -85,8 +85,13 @@ public class TestVTTSScoring {
 		and the home activity which is a lot longer then the typical duration --> 4.0786461161928855
 		*/
 		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("timePressure"))).isEqualTo(6.44512607275729);
-
 	}
+
+
+
+
+
+
 
 	private static void createTestPopulation(Scenario scenario) {
 		Population population = scenario.getPopulation();
@@ -125,5 +130,8 @@ public class TestVTTSScoring {
 		personThatIsUnderTimePressure.addPlan(planForTimePressureAgent);
 		population.addPerson(personThatIsUnderTimePressure);
 	}
+
+
+
 
 }

@@ -70,7 +70,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 	private static int noTripVTTSWarning = 0;
 	private static int noTripNrWarning = 0;
 
-	private Scenario scenario;
+	private final Scenario scenario;
 	private int currentIteration;
 
 
@@ -93,7 +93,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 	private final double defaultVTTS_moneyPerHour; // for the car mode!
 
-	private ScoringParametersForPerson scoringParametersForPerson;
+	private final ScoringParametersForPerson scoringParametersForPerson;
 
 	@Inject
 	 public VTTSHandler( Scenario scenario, ScoringParametersForPerson scoringParametersForPerson ) {
@@ -108,6 +108,7 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 //		this.modesToBeSkipped = helpLegModes;
 //		this.stageActivitySubString = stageActivitySubString;
 		this.scenario = scenario;
+		this.scoringParametersForPerson = scoringParametersForPerson;
 		this.currentIteration = Integer.MIN_VALUE;
 		this.defaultVTTS_moneyPerHour =
 				(this.scenario.getConfig().scoring().getPerforming_utils_hr()
@@ -298,8 +299,9 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 							  + "Setting this value to zero. (Probably using subpopulations...)" );
 		}
 		double tripDelayDisutilityOneSec = (1.0 / 3600.) * marginalUtilityOfTraveling * (-1);
+
 		// Translate the disutility into monetary units.
-		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / this.scenario.getConfig().scoring().getMarginalUtilityOfMoney();
+		double delayCostPerSec_usingActivityDelayOneSec = (activityDelayDisutilityOneSec + tripDelayDisutilityOneSec) / scoringParametersForPerson.getScoringParameters(scenario.getPopulation().getPersons().get(personId)).marginalUtilityOfMoney;
 
 		// store the VTTS for analysis purposes
 		if( this.personId2VTTSh.containsKey( personId ) ){
@@ -665,6 +667,4 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 		}
 	}
 
-
-	public enum VTTSCalculationMethod {noIncomeDependentScoring, incomeDependentScoring};
 }
