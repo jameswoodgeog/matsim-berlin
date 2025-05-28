@@ -23,9 +23,9 @@ import java.util.Set;
 public class Prepare16thSectionA100Network implements MATSimAppCommand {
 	Logger log = LogManager.getLogger(Prepare16thSectionA100Network.class);
 
-	@CommandLine.Option(names = "--network", description = "Path to network file", required = true, defaultValue = "/Users/jakob/Downloads/berlin-v6.4-network-with-pt.xml.gz")
+	@CommandLine.Option(names = "--network", description = "Path to network file", required = true)
 	private String networkFile;
-	@CommandLine.Option(names = "--output", description = "Output path of the prepared network", required = true, defaultValue = "/Users/jakob/Downloads/berlin-v6.4-network-with-pt-a100.xml.gz")
+	@CommandLine.Option(names = "--output", description = "Output path of the prepared network", required = true)
 	private String outputPath;
 
 
@@ -72,8 +72,8 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 
 		//	Treptower Park: new node on a100 to connect to Treptower Park this node is NOT yet needed, but we implement it to prepare a potential connection of BA17
 		Node a100TreptowerParkSouth = NetworkUtils.createAndAddNode(network, Id.createNodeId("a100TreptowerParkSouth"), new Coord(802650.11,5824819.05));
-		//		we use the existing node with id 27542427 to connect the existing street network to a100
-		Node connectorTreptowerPark = network.getNodes().get(Id.createNodeId("27542427"));
+		//		we use the existing node with id 287932781 to connect the existing street network to a100
+		Node connectorTreptowerPark = network.getNodes().get(Id.createNodeId(287932781));
 
 
 
@@ -122,7 +122,7 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 		Link towardsElsenStr = network.getLinks().get(Id.createLinkId("69166216#0"));
 		copyLinkAttributesAndAddToNetwork(network, "-69166216#0", towardsElsenStr.getToNode(), towardsElsenStr.getFromNode(), towardsElsenStr);
 
-//		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.car, "freight", TransportMode.ride, TransportMode.truck));
+		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.car, "freight", TransportMode.ride, TransportMode.truck));
 	}
 
 	private static void copyLinkAttributesAndAddToNetwork(Network network, String linkId, Node fromNode, Node toNode, Link originalLink) {
