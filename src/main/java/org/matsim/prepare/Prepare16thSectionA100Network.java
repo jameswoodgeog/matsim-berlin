@@ -84,10 +84,28 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 
 		// b) Grenzallee - kreuzungsfrei, not needed
 
-		// Sonnenallee
-		// for Sonnenallee we need to cut the links, such that there is 1 node in the center of the street where all links arrive and depart:
-		// all links from/to A100
-		// all "normal links"
+		// c) Sonnenallee
+		// for Sonnenallee we need to cut link 497789990#0 such that there is 1 node in the center of the street (existing node 3386901044) where all connector links arrive and depart:
+		Link sonnenalleeOld = network.getLinks().get(Id.createLinkId("497789990"));
+
+		copyLinkAttributesAndAddToNetwork(network, "497789990_right", sonnenalleeOld.getFromNode(), connectorSonnenallee, sonnenalleeOld);
+		copyLinkAttributesAndAddToNetwork(network, "497789990_left", connectorSonnenallee, sonnenalleeOld.getToNode(), sonnenalleeOld);
+
+//		also remove the old sonnenallee link, which we just cut
+		network.removeLink(sonnenalleeOld.getId());
+
+//		connect a100 sonnenallee south to sonnenallee
+		copyLinkAttributesAndAddToNetwork(network, "a100SonnenalleeSouthToConnectorSonnenallee", a100SonnenalleeSouth, connectorSonnenallee, exampleConnectorFromA100);
+		copyLinkAttributesAndAddToNetwork(network, "connectorSonnenalleeToA100SonnenalleeSouth", connectorSonnenallee, a100SonnenalleeSouth, exampleConnectorToA100);
+
+//		connect a100 sonnenallee south to a100 sonnenallee north
+		copyLinkAttributesAndAddToNetwork(network, "a100SonnenalleeSouthToA100SonnenalleeNorth", a100SonnenalleeSouth, a100SonnenalleeNorth, exampleAutobahnLink);
+		copyLinkAttributesAndAddToNetwork(network, "a100SonnenalleeNorthToA100SonnenalleeSouth", a100SonnenalleeNorth, a100SonnenalleeSouth, exampleAutobahnLink);
+
+//		connect connector sonnenallee to a100 sonnenallee north
+		copyLinkAttributesAndAddToNetwork(network, "connectorSonnenalleeToA100SonnenalleeNorth", connectorSonnenallee, a100SonnenalleeNorth, exampleConnectorToA100);
+		copyLinkAttributesAndAddToNetwork(network, "a100SonnenalleeNorthToConnectorSonnenallee", a100SonnenalleeNorth, connectorSonnenallee, exampleConnectorFromA100);
+
 
 		// Treptower Park
 		//		create a100 between treptower park and sonnenallee north
@@ -104,5 +122,15 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 		copyLinkAttributesAndAddToNetwork(network, "-69166216#0", towardsElsenStr.getToNode(), towardsElsenStr.getFromNode(), towardsElsenStr);
 
 		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.car, "freight", TransportMode.ride, TransportMode.truck));
+	}
+
+	private static void copyLinkAttributesAndAddToNetwork(Network network, String linkId, Node fromNode, Node toNode, Link originalLink) {
+		double length = NetworkUtils.getEuclideanDistance(fromNode.getCoord(), toNode.getCoord());
+		Link newLink = NetworkUtils.createAndAddLink(network, Id.createLinkId(linkId), fromNode, toNode, length, originalLink.getFreespeed(), originalLink.getCapacity(), originalLink.getNumberOfLanes());
+		newLink.setAllowedModes(originalLink.getAllowedModes());
+		newLink.getAttributes().putAttribute("allowed_speed", originalLink.getAttributes().getAttribute("allowed_speed"));
+		newLink.getAttributes().putAttribute("speed_factor", originalLink.getAttributes().getAttribute("speed_factor"));
+		newLink.getAttributes().putAttribute("type", originalLink.getAttributes().getAttribute("type"));
+		newLink.getAttributes().putAttribute("restricted_lanes", originalLink.getAttributes().getAttribute("restricted_lanes"));
 	}
 }
