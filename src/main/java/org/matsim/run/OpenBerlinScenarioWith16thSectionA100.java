@@ -4,6 +4,9 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.config.Config;
 import org.matsim.prepare.Prepare16thSectionA100Network;
 
+/**
+ * Run the {@link OpenBerlinScenario} with the 16th section of A100 added to the network.
+ */
 public class OpenBerlinScenarioWith16thSectionA100 extends OpenBerlinScenario {
 
 
