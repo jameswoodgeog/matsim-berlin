@@ -23,10 +23,11 @@ import java.util.Set;
 public class Prepare16thSectionA100Network implements MATSimAppCommand {
 	Logger log = LogManager.getLogger(Prepare16thSectionA100Network.class);
 
-	@CommandLine.Option(names = "--network", description = "Path to network file", required = true)
+	@CommandLine.Option(names = "--network", description = "Path to network file", required = true, defaultValue = "/Users/jakob/Downloads/berlin-v6.4-network-with-pt.xml.gz")
 	private String networkFile;
-	@CommandLine.Option(names = "--output", description = "Output path of the prepared network", required = true)
+	@CommandLine.Option(names = "--output", description = "Output path of the prepared network", required = true, defaultValue = "/Users/jakob/Downloads/berlin-v6.4-network-with-pt-a100.xml.gz")
 	private String outputPath;
+
 
 	public static void main(String[] args) {
 		new Prepare16thSectionA100Network().execute(args);
@@ -86,7 +87,7 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 
 		// c) Sonnenallee
 		// for Sonnenallee we need to cut link 497789990#0 such that there is 1 node in the center of the street (existing node 3386901044) where all connector links arrive and depart:
-		Link sonnenalleeOld = network.getLinks().get(Id.createLinkId("497789990"));
+		Link sonnenalleeOld = network.getLinks().get(Id.createLinkId("497789990#0"));
 
 		copyLinkAttributesAndAddToNetwork(network, "497789990_right", sonnenalleeOld.getFromNode(), connectorSonnenallee, sonnenalleeOld);
 		copyLinkAttributesAndAddToNetwork(network, "497789990_left", connectorSonnenallee, sonnenalleeOld.getToNode(), sonnenalleeOld);
@@ -121,16 +122,18 @@ public class Prepare16thSectionA100Network implements MATSimAppCommand {
 		Link towardsElsenStr = network.getLinks().get(Id.createLinkId("69166216#0"));
 		copyLinkAttributesAndAddToNetwork(network, "-69166216#0", towardsElsenStr.getToNode(), towardsElsenStr.getFromNode(), towardsElsenStr);
 
-		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.car, "freight", TransportMode.ride, TransportMode.truck));
+//		new MultimodalNetworkCleaner(network).run(Set.of(TransportMode.car, "freight", TransportMode.ride, TransportMode.truck));
 	}
 
 	private static void copyLinkAttributesAndAddToNetwork(Network network, String linkId, Node fromNode, Node toNode, Link originalLink) {
 		double length = NetworkUtils.getEuclideanDistance(fromNode.getCoord(), toNode.getCoord());
+		//TODO cut signficant digits on length
 		Link newLink = NetworkUtils.createAndAddLink(network, Id.createLinkId(linkId), fromNode, toNode, length, originalLink.getFreespeed(), originalLink.getCapacity(), originalLink.getNumberOfLanes());
 		newLink.setAllowedModes(originalLink.getAllowedModes());
+
 		newLink.getAttributes().putAttribute("allowed_speed", originalLink.getAttributes().getAttribute("allowed_speed"));
 		newLink.getAttributes().putAttribute("speed_factor", originalLink.getAttributes().getAttribute("speed_factor"));
 		newLink.getAttributes().putAttribute("type", originalLink.getAttributes().getAttribute("type"));
-		newLink.getAttributes().putAttribute("restricted_lanes", originalLink.getAttributes().getAttribute("restricted_lanes"));
+//		newLink.getAttributes().putAttribute("restricted_lanes", originalLink.getAttributes().getAttribute("restricted_lanes"));
 	}
 }
