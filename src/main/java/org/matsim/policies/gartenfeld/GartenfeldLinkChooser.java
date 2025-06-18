@@ -39,7 +39,7 @@ class GartenfeldLinkChooser implements MultimodalLinkChooser {
 		if ( area.contains(MGC.coord2Point(routingRequest.getFromFacility().getCoord())) && TransportMode.car.equals( mode ) ){
 			return network.getLinks().get( Id.createLinkId( "network-DNG.1" ) );
 		} else {
-			delegate.decideAccessLink( routingRequest, mode, network );
+			return delegate.decideAccessLink( routingRequest, mode, network );
 		}
 	}
 
@@ -48,7 +48,7 @@ class GartenfeldLinkChooser implements MultimodalLinkChooser {
 		if ( area.contains(MGC.coord2Point(routingRequest.getToFacility().getCoord())) && TransportMode.car.equals( mode ) ){
 			return network.getLinks().get( Id.createLinkId( "network-DNG.1" ) );
 		} else {
-			delegate.decideEgressLink( routingRequest, mode, network ) ;
+			return delegate.decideEgressLink( routingRequest, mode, network ) ;
 		}
 	}
 
