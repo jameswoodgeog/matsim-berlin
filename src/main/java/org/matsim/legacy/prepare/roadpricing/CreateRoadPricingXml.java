@@ -49,11 +49,11 @@ public class CreateRoadPricingXml {
 		config.network().setInputFile("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/output/berlin-v6.4-10pct/berlin-v6.4.output_network.xml.gz");
         Scenario scenario = RunBerlinScenario.prepareScenario( config ) ;
 
-//        createDistanceCostRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, "berlin_distance_roadpricing.xml");
-        createCordonRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, "berlin_cordon_roadpricing.xml");
+//        createDistanceCostRoadPricingXml(scenario, zoneShpFile, zoneShpCRS);
+        createCordonRoadPricingXml(scenario, zoneShpFile, zoneShpCRS);
     }
 
-    static void createDistanceCostRoadPricingXml(Scenario scenario, String zoneShpFile, String shapeFileCRS, String outputFile) {
+    static void createDistanceCostRoadPricingXml(Scenario scenario, String zoneShpFile, String shapeFileCRS) {
         CoordinateTransformation transformer = TransformationFactory.getCoordinateTransformation(scenario.getConfig().global().getCoordinateSystem(), shapeFileCRS);
         List<PreparedGeometry> geometries = ShpGeometryUtils.loadPreparedGeometries(IOUtils.resolveFileOrResource(zoneShpFile));
 
@@ -80,10 +80,10 @@ public class CreateRoadPricingXml {
                 0.00005);
 
         RoadPricingWriterXMLv1 writer = new RoadPricingWriterXMLv1(scheme);
-        writer.writeFile(outputFile);
+        writer.writeFile("berlin_distance_roadpricing.xml");
     }
 
-    static void createCordonRoadPricingXml(Scenario scenario, String zoneShpFile, String shapeFileCRS, String outputFile) {
+    static void createCordonRoadPricingXml(Scenario scenario, String zoneShpFile, String shapeFileCRS) {
         CoordinateTransformation transformer = TransformationFactory.getCoordinateTransformation(scenario.getConfig().global().getCoordinateSystem(), shapeFileCRS);
         List<PreparedGeometry> geometries = ShpGeometryUtils.loadPreparedGeometries(IOUtils.resolveFileOrResource(zoneShpFile));
 
@@ -110,6 +110,6 @@ public class CreateRoadPricingXml {
                 5.0);
 
         RoadPricingWriterXMLv1 writer = new RoadPricingWriterXMLv1(scheme);
-        writer.writeFile(outputFile);
+        writer.writeFile("berlin_cordon_roadpricing.xml");
     }
 }
