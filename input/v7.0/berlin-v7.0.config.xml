@@ -104,6 +104,7 @@
 
 	<module name="scoring">
 		<param name="fractionOfIterationsToStartScoreMSA" value="0.9"/>
+		<param name="writeExperiencedPlans" value="true"/>
 		<param name="pathSizeLogitBeta" value="0"/>
 
 		<parameterset type="scoringParameters">
