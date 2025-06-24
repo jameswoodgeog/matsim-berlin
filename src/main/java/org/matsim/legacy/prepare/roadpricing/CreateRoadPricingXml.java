@@ -42,16 +42,15 @@ public class CreateRoadPricingXml {
 //        String zoneShpFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/projects/avoev/shp-files/shp-berlin-bezirksregionen/berlin-bezirksregion_GK4_fixed.shp";
         String zoneShpFile = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/projects/avoev/shp-files/shp-inner-city-area/inner-city-area.shp";
         String zoneShpCRS = "EPSG:31468";
-//        String outputFile = "berlin_distance_roadpricing.xml";
-        String outputFile = "berlin_cordon_roadpricing.xml";
-        if (args.length == 0) {
-            args = new String[]{"scenarios/berlin-v5.5-1pct/input/berlin-v5.5-1pct.config.xml"};
+		if (args.length == 0) {
+            args = new String[]{"https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/output/berlin-v6.4-10pct/berlin-v6.4.output_config.xml"};
         }
         Config config =  RunBerlinScenario.prepareConfig( args ) ;
+		config.network().setInputFile("https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/output/berlin-v6.4-10pct/berlin-v6.4.output_network.xml.gz");
         Scenario scenario = RunBerlinScenario.prepareScenario( config ) ;
 
-//        createDistanceCostRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, outputFile);
-        createCordonRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, outputFile);
+//        createDistanceCostRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, "berlin_distance_roadpricing.xml");
+        createCordonRoadPricingXml(scenario, zoneShpFile, zoneShpCRS, "berlin_cordon_roadpricing.xml");
     }
 
     static void createDistanceCostRoadPricingXml(Scenario scenario, String zoneShpFile, String shapeFileCRS, String outputFile) {
@@ -91,7 +90,7 @@ public class CreateRoadPricingXml {
         RoadPricingSchemeImpl scheme = RoadPricingUtils.addOrGetMutableRoadPricingScheme(scenario );
 
         /* Configure roadpricing scheme. */
-        RoadPricingUtils.setName(scheme, "Berlin_distance_toll");
+        RoadPricingUtils.setName(scheme, "Berlin_cordon_toll");
         RoadPricingUtils.setType(scheme, RoadPricingScheme.TOLL_TYPE_LINK);
         RoadPricingUtils.setDescription(scheme, "cordon toll within Berlin inner city border");
 
