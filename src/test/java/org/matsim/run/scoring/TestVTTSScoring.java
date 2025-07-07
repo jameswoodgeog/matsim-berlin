@@ -42,13 +42,13 @@ public class TestVTTSScoring {
 
 		ScoringConfigGroup.ActivityParams paramsWork = new ScoringConfigGroup.ActivityParams();
 		// eight hours
-		paramsWork.setTypicalDuration(28800);
+		paramsWork.setTypicalDuration(8*3600);
 		paramsWork.setActivityType("work");
 
 		ScoringConfigGroup.ActivityParams paramsHome = new ScoringConfigGroup.ActivityParams();
 		paramsHome.setActivityType("home");
 		// twelve hours of home activity
-		paramsHome.setTypicalDuration(43200);
+		paramsHome.setTypicalDuration(12*3600);
 		config.scoring().addActivityParams(paramsHome);
 		config.scoring().addActivityParams(paramsWork);
 		config.scoring().getScoringParameters(null).setLateArrival_utils_hr(0.);
@@ -104,13 +104,13 @@ public class TestVTTSScoring {
 
 		ScoringConfigGroup.ActivityParams paramsWork = new ScoringConfigGroup.ActivityParams();
 		// eight hours
-		paramsWork.setTypicalDuration(28800);
+		paramsWork.setTypicalDuration(8*3600);
 		paramsWork.setActivityType("work");
 
 		ScoringConfigGroup.ActivityParams paramsHome = new ScoringConfigGroup.ActivityParams();
 		paramsHome.setActivityType("home");
 		// twelve hours of home activity
-		paramsHome.setTypicalDuration(43200);
+		paramsHome.setTypicalDuration(12*3600);
 		config.scoring().addActivityParams(paramsHome);
 		config.scoring().addActivityParams(paramsWork);
 		config.scoring().getScoringParameters(null).setLateArrival_utils_hr(0.);

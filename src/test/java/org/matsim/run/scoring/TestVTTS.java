@@ -17,8 +17,7 @@ import org.matsim.examples.ExamplesUtils;
 import org.matsim.vtts.VTTSHandler;
 import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.matsim.vtts.VTTSHandler.VTTSCalculationMethod.noIncomeDependentScoring;
+
 /*
 public class TestVTTS {
 
