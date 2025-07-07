@@ -79,7 +79,7 @@ public class TestVTTSScoring {
 		this is the average between the work activity which is exact the typical duration --> 6.001979820359793
 		and the home activity which is a lot longer then the typical duration --> 4.76729108633549
 		*/
-        assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("perfectDuration"))).isEqualTo(5.3846354533476415);
+		assertThat(vttsHandler.getAvgVTTSh(Id.createPersonId("perfectDuration"))).isEqualTo(5.3846354533476415);
 
 		/*
 		this is the average between the work activity which is below the typical duration --> 8.811606029321695 --> higher than the default of 6

@@ -97,8 +97,11 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 
 
 	@Inject
-	 public VTTSHandler( Scenario scenario, ScoringParametersForPerson scoringParametersForPerson ) {
-		// make non-public
+	VTTSHandler( Scenario scenario, ScoringParametersForPerson scoringParametersForPerson ) {
+		// yyyy it would (presumably) be much better to pull the scoring function from injection.  Rather than self-constructing the
+		// scoring function here, where we need to rely on having the same ("default") scoring function in the model implementation.
+		// Which we almost surely do not have (e.g. bicycle scoring addition, bus penalty addition, ...).  Also see a similar comment further
+		// down, where the local scoring fct is constructed.  kai, gr, jul'25
 
 		if (scenario.getConfig().scoring().getMarginalUtilityOfMoney() == 0.) {
 			log.warn("The marginal utility of money must not be 0.0. The VTTS is computed in Money per Time.");
@@ -249,6 +252,9 @@ public class VTTSHandler implements ActivityStartEventHandler, ActivityEndEventH
 			final org.matsim.vtts.MarginalSumScoringFunction marginalSumScoringFunction =
 					new org.matsim.vtts.MarginalSumScoringFunction(
 							new ScoringParameters.Builder( scenario.getConfig().scoring(), scenario.getConfig().scoring().getScoringParameters( subpop ), scenario.getConfig().scenario() ).build() );
+			// yyyy it would (presumably) be much better to pull the scoring function from injection.  Rather than self-constructing the
+			// scoring function here, where we need to rely on having the same ("default") scoring function in the model implementation.
+			// Which we almost surely do not have (e.g. bicycle scoring addition, bus penalty addition, ...).  kai, gr, jul'25
 
 			if( activityEndTime == Double.NEGATIVE_INFINITY ){
 				// The end time is undefined...
