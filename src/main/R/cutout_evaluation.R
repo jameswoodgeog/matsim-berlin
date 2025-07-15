@@ -1,9 +1,10 @@
-# Preparation script for first time users
+  # Preparation script for first time users
 {
   install.packages("devtools")
   devtools::install_github("matsim-vsp/matsim-r", build_vignettes = TRUE)
   library("matsim")
   library("tidyverse")
+  library("sf")
 }
 
 compare_across_methods <- function(...) {
@@ -39,40 +40,32 @@ compare_across_methods <- function(...) {
       y = "",
       fill = "Verkehrsmittel"
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(text=element_text(size=18))
 }
 
 # Modal Share
 {
-  # Using a HPC-Cluster mount drive for the patsh here
-  trips_gp_ref <- read_output_trips(input_path = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/output/gartenfeld-v6.4-10pct/gartenfeld-v6.4-10pct.output_trips.csv.gz") %>%
-    filter(str_detect(person, "dng"))
-  trips_cut_gp_keepCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-keepCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_gp_subtractLostVehiclesCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-subtractLostVehiclesCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_gp_relativeAdjustmentOfCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-relativeAdjustmentOfCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_gp_proportionalFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-proportionalFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_gp_modeledFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-modeledFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz")
+  # Using a HPC-Cluster mount drive for the paths here
+  # trips_gp_ref <- read_output_trips(input_path = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/output/gartenfeld-v6.4-10pct/gartenfeld-v6.4-10pct.output_trips.csv.gz") %>%
+  #   filter(str_detect(person, "dng"))
+  trips_gp_reference <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-reference/berlin-v6.4.output_trips.csv.gz") %>%
+    filter(startsWith(person, "dng"))
 
-  compare_across_methods(a_gp_reference=trips_ref,
+  trips_cut_gp_keepCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-keepCapacities/berlin-v6.4.output_trips.csv.gz") %>%
+    filter(startsWith(person, "dng"))
+  trips_cut_gp_subtractLostVehiclesCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-subtractLostVehiclesCapacities/berlin-v6.4.output_trips.csv.gz") %>%
+    filter(startsWith(person, "dng"))
+  #trips_cut_gp_relativeAdjustmentOfCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-relativeAdjustmentOfCapacities/berlin-v6.4.output_trips.csv.gz") %>%
+  #  filter(startsWith(person, "dng"))
+  trips_cut_gp_proportionalFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-proportionalFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz") %>%
+    filter(startsWith(person, "dng"))
+  trips_cut_gp_modeledFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/gp-modeledFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz") %>%
+    filter(startsWith(person, "dng"))
+
+  compare_across_methoads(a_gp_reference=trips_gp_reference,
                          b_gp_keepCapacities=trips_cut_gp_keepCapacities,
                          c_gp_subtractLostVehiclesCapacities=trips_cut_gp_subtractLostVehiclesCapacities,
                          d_gp_proportionalFreespeedsCleaning=trips_cut_gp_proportionalFreespeedsCleaning,
                          e_gp_modeledFreespeedsCleaning=trips_cut_gp_modeledFreespeedsCleaning)
-
-  # Using a HPC-Cluster mount drive for the patsh here
-  trips_ref <- read_output_trips(input_path = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/berlin/berlin-v6.4/output/berlin-v6.4-10pct/berlin-v6.4.output_trips.csv.gz") %>%
-    filter(str_detect(person, "dng"))
-  trips_cut_keepCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/keepCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_subtractLostVehiclesCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/subtractLostVehiclesCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_relativeAdjustmentOfCapacities <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/relativeAdjustmentOfCapacities/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_proportionalFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/proportionalFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz")
-  trips_cut_modeledFreespeedsCleaning <- read_output_trips(input_path = "/Users/aleksander/Cluster/scenario-cutout-improvement/simulation-runs/output/modeledFreespeedsCleaning/berlin-v6.4.output_trips.csv.gz")
-
-  compare_across_methods(a_reference=trips_ref,
-                         b_keepCapacities=trips_cut_keepCapacities,
-                         c_subtractLostVehiclesCapacities=trips_cut_subtractLostVehiclesCapacities,
-                         d_proportionalFreespeedsCleaning=trips_cut_proportionalFreespeedsCleaning,
-                         e_modeledFreespeedsCleaning=trips_cut_modeledFreespeedsCleaning)
-
 }
-
