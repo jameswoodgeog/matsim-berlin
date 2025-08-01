@@ -1,5 +1,6 @@
 package org.matsim.run.gartenfeld;
 
+import org.jetbrains.annotations.Nullable;
 import org.matsim.analysis.QsimTimingModule;
 import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
 import org.matsim.api.core.v01.Scenario;
@@ -68,6 +69,14 @@ public class GartenfeldScenario extends MATSimApplication {
 
 	public static void main(String[] args) {
 		MATSimApplication.run(GartenfeldScenario.class, args);
+	}
+
+	public GartenfeldScenario() {
+		super("input/gartenfeld/gartenfeld.config.xml");
+	}
+
+	public GartenfeldScenario(@Nullable String defaultConfigPath) {
+		super(defaultConfigPath);
 	}
 
 	protected Config prepareConfig(Config config) {
