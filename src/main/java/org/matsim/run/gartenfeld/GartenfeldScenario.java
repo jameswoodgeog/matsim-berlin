@@ -30,7 +30,7 @@ import java.util.Set;
  */
 public class GartenfeldScenario extends OpenBerlinScenario {
 
-	@CommandLine.Option(names = "--gartenfeld-config", description = "Path to configuration for Gartenfeld.", defaultValue = "input/gartenfeld/gartenfeld.config.xml")
+	@CommandLine.Option(names = "--gartenfeld-config", description = "Path to configuration for Gartenfeld.", defaultValue = "input/gartenfeld/gartenfeld-cutout.config.xml")
 	private String gartenFeldConfig;
 
 	@CommandLine.Option(names = "--gartenfeld-shp", description = "Path to configuration for Gartenfeld.", defaultValue = "input/gartenfeld/DNG_area.gpkg")
