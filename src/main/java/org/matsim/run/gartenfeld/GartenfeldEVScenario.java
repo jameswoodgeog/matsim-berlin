@@ -7,18 +7,11 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.prep.PreparedGeometry;
 import org.locationtech.jts.geom.prep.PreparedGeometryFactory;
-import org.matsim.analysis.QsimTimingModule;
-import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.population.Person;
-import org.matsim.application.options.SampleOptions;
-import org.matsim.contrib.bicycle.BicycleConfigGroup;
-import org.matsim.contrib.emissions.HbefaRoadTypeMapping;
-import org.matsim.contrib.emissions.OsmHbefaMapping;
-import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
 import org.matsim.contrib.ev.EvConfigGroup;
 import org.matsim.contrib.ev.EvModule;
 import org.matsim.contrib.ev.fleet.ElectricFleetUtils;
@@ -28,37 +21,24 @@ import org.matsim.contrib.ev.strategic.StrategicChargingUtils;
 import org.matsim.contrib.ev.strategic.replanning.StrategicChargingReplanningStrategy;
 import org.matsim.contrib.ev.strategic.scoring.ChargingPlanScoringParameters;
 import org.matsim.contrib.ev.withinday.WithinDayEvEngine;
-import org.matsim.contrib.vsp.scoring.RideScoringParamsFromCarParams;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.QSimConfigGroup;
 import org.matsim.core.config.groups.ReplanningConfigGroup;
 import org.matsim.core.config.groups.VspExperimentalConfigGroup;
-import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.population.PopulationUtils;
-import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.router.TripStructureUtils;
-import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.core.utils.gis.GeoFileReader;
 import org.matsim.core.utils.io.IOUtils;
-import org.matsim.run.Activities;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.AdvancedScoringModule;
-import org.matsim.simwrapper.SimWrapperConfigGroup;
-import org.matsim.simwrapper.SimWrapperModule;
 import org.matsim.vehicles.Vehicle;
 import org.matsim.vehicles.VehicleType;
 import org.matsim.vehicles.VehicleUtils;
 import org.matsim.vehicles.Vehicles;
-import picocli.CommandLine;
-import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static org.matsim.run.OpenBerlinScenario.*;
 
 /**
  * Scenario class for Gartenfeld with electric vehicles, extending the {@link GartenfeldScenario}.
@@ -70,15 +50,6 @@ public class GartenfeldEVScenario extends GartenfeldScenario {
 	//normally i would like to put the https URL here, but it isn't possible to have MATSim application load a config from a URL, atm.
 //    private static final String SVN_OUPTUT_DIRECTORY = "https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/output/gartenfeld-v6.4-1pct/";
 	private static final String SVN_OUPTUT_DIRECTORY = "D:/public-svn/matsim/scenarios/countries/de/gartenfeld/output/gartenfeld-v6.4-1pct/";
-
-	@CommandLine.Option(names = "--plan-selector",
-			description = "Plan selector to use.",
-			defaultValue = DefaultPlanStrategiesModule.DefaultSelector.ChangeExpBeta)
-	private String planSelector;
-
-	@CommandLine.Mixin
-	private final SampleOptions sample = new SampleOptions(10, 25, 3, 1);
-
 
 	public static void main(String[] args) {
 		runWithDefaults(GartenfeldEVScenario.class, args,
@@ -98,80 +69,7 @@ public class GartenfeldEVScenario extends GartenfeldScenario {
 
 	@Override
 	protected Config prepareConfig(Config config) {
-
-		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
-
-		if (sample.isSet()) {
-			double sampleSize = sample.getSample();
-
-			config.qsim().setFlowCapFactor(sampleSize);
-			config.qsim().setStorageCapFactor(sampleSize);
-
-			// Counts can be scaled with sample size
-			config.counts().setCountsScaleFactor(sampleSize);
-			sw.setSampleSize(sampleSize);
-
-			config.controller().setRunId(sample.adjustName(config.controller().getRunId()));
-			config.controller().setOutputDirectory(sample.adjustName(config.controller().getOutputDirectory()));
-			config.plans().setInputFile(sample.adjustName(config.plans().getInputFile()));
-		}
-
-		config.qsim().setUsingTravelTimeCheckInTeleportation(true);
-
-		// overwrite ride scoring params with values derived from car
-		RideScoringParamsFromCarParams.setRideScoringParamsBasedOnCarParams(config.scoring(), 1.0);
-		Activities.addScoringParams(config, true);
-
-		// Required for all calibration strategies
-		for (String subpopulation : List.of("person", "freight", "goodsTraffic", "commercialPersonTraffic", "commercialPersonTraffic_service")) {
-			config.replanning().addStrategySettings(
-				new ReplanningConfigGroup.StrategySettings()
-					.setStrategyName(planSelector)
-					.setWeight(1.0)
-					.setSubpopulation(subpopulation)
-			);
-
-			config.replanning().addStrategySettings(
-				new ReplanningConfigGroup.StrategySettings()
-					.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.ReRoute)
-					.setWeight(0.15)
-					.setSubpopulation(subpopulation)
-			);
-		}
-
-		config.replanning().addStrategySettings(
-			new ReplanningConfigGroup.StrategySettings()
-				.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.TimeAllocationMutator)
-				.setWeight(0.15)
-				.setSubpopulation("person")
-		);
-
-		config.replanning().addStrategySettings(
-			new ReplanningConfigGroup.StrategySettings()
-				.setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.SubtourModeChoice)
-				.setWeight(0.15)
-				.setSubpopulation("person")
-		);
-
-		// Need to switch to warning for best score
-		if (planSelector.equals(DefaultPlanStrategiesModule.DefaultSelector.BestScore)) {
-			config.vspExperimental().setVspDefaultsCheckingLevel(VspExperimentalConfigGroup.VspDefaultsCheckingLevel.warn);
-		}
-
-		// Bicycle config must be present
-		ConfigUtils.addOrGetModule(config, BicycleConfigGroup.class);
-
-		// Add emissions configuration
-		EmissionsConfigGroup eConfig = ConfigUtils.addOrGetModule(config, EmissionsConfigGroup.class);
-		eConfig.setDetailedColdEmissionFactorsFile(HBEFA_FILE_COLD_DETAILED);
-		eConfig.setDetailedWarmEmissionFactorsFile(HBEFA_FILE_WARM_DETAILED);
-		eConfig.setAverageColdEmissionFactorsFile(HBEFA_FILE_COLD_AVERAGE);
-		eConfig.setAverageWarmEmissionFactorsFile(HBEFA_FILE_WARM_AVERAGE);
-		eConfig.setHbefaTableConsistencyCheckingLevel(EmissionsConfigGroup.HbefaTableConsistencyCheckingLevel.consistent);
-		eConfig.setDetailedVsAverageLookupBehavior(EmissionsConfigGroup.DetailedVsAverageLookupBehavior.tryDetailedThenTechnologyAverageThenAverageTable);
-		eConfig.setEmissionsComputationMethod(EmissionsConfigGroup.EmissionsComputationMethod.StopAndGoFraction);
-
-		config = config;
+		config = super.prepareConfig(config);
 
 		// Add the EV config group
 		EvConfigGroup evConfigGroup = ConfigUtils.addOrGetModule(config, EvConfigGroup.class);
@@ -235,10 +133,7 @@ public class GartenfeldEVScenario extends GartenfeldScenario {
 
 	@Override
 	protected void prepareScenario(Scenario scenario) {
-
-		// add hbefa link attributes.
-		HbefaRoadTypeMapping roadTypeMapping = OsmHbefaMapping.build();
-		roadTypeMapping.addHbefaMappings(scenario.getNetwork());
+		super.prepareScenario(scenario);
 
 		Vehicles vehicles = scenario.getVehicles();
 		//create the vehicle type for EVs
@@ -259,28 +154,7 @@ public class GartenfeldEVScenario extends GartenfeldScenario {
 
 	@Override
 	protected void prepareControler(Controler controler) {
-
-		controler.addOverridingModule(new SimWrapperModule());
-
-		controler.addOverridingModule(new TravelTimeBinding());
-
-		controler.addOverridingModule(new QsimTimingModule());
-
-		// AdvancedScoring is specific to matsim-berlin!
-		if (ConfigUtils.hasModule(controler.getConfig(), AdvancedScoringConfigGroup.class)) {
-			controler.addOverridingModule(new AdvancedScoringModule());
-			controler.getConfig().scoring().setExplainScores(true);
-		} else {
-			// if the above config group is not present we still need income dependent scoring
-			// this implementation also allows for person specific asc
-			controler.addOverridingModule(new AbstractModule() {
-				@Override
-				public void install() {
-					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
-				}
-			});
-		}
-		controler.addOverridingModule(new PersonMoneyEventsAnalysisModule());
+		super.prepareControler(controler);
 
 		//add the basic functionality to charge and discharge vehicles and to model chargers etc.
 		//actually, I think the EVBaseModule is enough, when we use the StrategicCharging module. TODO: test that

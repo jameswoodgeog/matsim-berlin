@@ -28,15 +28,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.locationtech.jts.geom.Geometry;
-import org.matsim.analysis.QsimTimingModule;
-import org.matsim.analysis.personMoney.PersonMoneyEventsAnalysisModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.application.MATSimApplication;
-import org.matsim.application.options.SampleOptions;
 import org.matsim.application.options.ShpOptions;
-import org.matsim.contrib.bicycle.BicycleConfigGroup;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.drt.routing.DrtRouteFactory;
 import org.matsim.contrib.drt.run.DrtConfigGroup;
@@ -46,26 +42,18 @@ import org.matsim.contrib.drt.run.MultiModeDrtModule;
 import org.matsim.contrib.dvrp.run.DvrpConfigGroup;
 import org.matsim.contrib.dvrp.run.DvrpModule;
 import org.matsim.contrib.dvrp.run.DvrpQSimComponents;
-import org.matsim.contrib.emissions.HbefaRoadTypeMapping;
-import org.matsim.contrib.emissions.OsmHbefaMapping;
-import org.matsim.contrib.emissions.utils.EmissionsConfigGroup;
-import org.matsim.contrib.vsp.scoring.RideScoringParamsFromCarParams;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.QSimConfigGroup;
-import org.matsim.core.config.groups.ReplanningConfigGroup;
 import org.matsim.core.config.groups.ScoringConfigGroup;
-import org.matsim.core.config.groups.VspExperimentalConfigGroup;
 import org.matsim.core.controler.AbstractModule;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.network.algorithms.MultimodalNetworkCleaner;
 import org.matsim.core.population.routes.RouteFactories;
-import org.matsim.core.replanning.strategies.DefaultPlanStrategiesModule;
 import org.matsim.core.router.AnalysisMainModeIdentifier;
 import org.matsim.core.router.MainModeIdentifier;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.core.scoring.functions.ScoringParametersForPerson;
 import org.matsim.core.utils.geometry.geotools.MGC;
 import org.matsim.extensions.pt.fare.intermodalTripFareCompensator.IntermodalTripFareCompensatorConfigGroup;
 import org.matsim.extensions.pt.fare.intermodalTripFareCompensator.IntermodalTripFareCompensatorsConfigGroup;
@@ -78,12 +66,7 @@ import org.matsim.legacy.run.drt.OpenBerlinIntermodalPtDrtRouterAnalysisModeIden
 import org.matsim.legacy.run.drt.OpenBerlinIntermodalPtDrtRouterModeIdentifier;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-import org.matsim.run.scoring.AdvancedScoringConfigGroup;
-import org.matsim.run.scoring.AdvancedScoringModule;
-import org.matsim.simwrapper.SimWrapperConfigGroup;
-import org.matsim.simwrapper.SimWrapperModule;
 import picocli.CommandLine;
-import playground.vsp.scoring.IncomeDependentUtilityOfMoneyPersonScoringParameters;
 
 import java.util.*;
 
@@ -101,15 +84,6 @@ public class OpenBerlinDrtScenario extends OpenBerlinScenario {
 		defaultValue = "input/v" + OpenBerlinScenario.VERSION + "/berlin-v" + OpenBerlinScenario.VERSION + ".drt-config.xml",
 		description = "Path to drt (only) config. Should contain only additional stuff to base config. Otherwise overrides.")
 	private String drtConfig;
-
-	@CommandLine.Option(names = "--plan-selector",
-			description = "Plan selector to use.",
-			defaultValue = DefaultPlanStrategiesModule.DefaultSelector.ChangeExpBeta)
-	private String planSelector;
-
-	@CommandLine.Mixin
-	private final SampleOptions sample = new SampleOptions(10, 25, 3, 1);
-
 
 	public static void main(String[] args) {
 		MATSimApplication.run(OpenBerlinDrtScenario.class, args);
@@ -231,81 +205,11 @@ public class OpenBerlinDrtScenario extends OpenBerlinScenario {
 		return customModules;
 	}
 
+	@Override
 	protected Config prepareConfig(Config config) {
+		super.prepareConfig(config);
 
-        SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
-
-        if (sample.isSet()) {
-            double sampleSize = sample.getSample();
-
-            config.qsim().setFlowCapFactor(sampleSize);
-            config.qsim().setStorageCapFactor(sampleSize);
-
-            // Counts can be scaled with sample size
-            config.counts().setCountsScaleFactor(sampleSize);
-            sw.setSampleSize(sampleSize);
-
-            config.controller().setRunId(sample.adjustName(config.controller().getRunId()));
-            config.controller().setOutputDirectory(sample.adjustName(config.controller().getOutputDirectory()));
-            config.plans().setInputFile(sample.adjustName(config.plans().getInputFile()));
-        }
-
-        config.qsim().setUsingTravelTimeCheckInTeleportation(true);
-
-        // overwrite ride scoring params with values derived from car
-        RideScoringParamsFromCarParams.setRideScoringParamsBasedOnCarParams(config.scoring(), 1.0);
-        Activities.addScoringParams(config, true);
-
-        // Required for all calibration strategies
-        for (String subpopulation : List.of("person", "freight", "goodsTraffic", "commercialPersonTraffic", "commercialPersonTraffic_service")) {
-            config.replanning().addStrategySettings(
-                new ReplanningConfigGroup.StrategySettings()
-                    .setStrategyName(planSelector)
-                    .setWeight(1.0)
-                    .setSubpopulation(subpopulation)
-            );
-
-            config.replanning().addStrategySettings(
-                new ReplanningConfigGroup.StrategySettings()
-                    .setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.ReRoute)
-                    .setWeight(0.15)
-                    .setSubpopulation(subpopulation)
-            );
-        }
-
-        config.replanning().addStrategySettings(
-            new ReplanningConfigGroup.StrategySettings()
-                .setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.TimeAllocationMutator)
-                .setWeight(0.15)
-                .setSubpopulation("person")
-        );
-
-        config.replanning().addStrategySettings(
-            new ReplanningConfigGroup.StrategySettings()
-                .setStrategyName(DefaultPlanStrategiesModule.DefaultStrategy.SubtourModeChoice)
-                .setWeight(0.15)
-                .setSubpopulation("person")
-        );
-
-        // Need to switch to warning for best score
-        if (planSelector.equals(DefaultPlanStrategiesModule.DefaultSelector.BestScore)) {
-            config.vspExperimental().setVspDefaultsCheckingLevel(VspExperimentalConfigGroup.VspDefaultsCheckingLevel.warn);
-        }
-
-        // Bicycle config must be present
-        ConfigUtils.addOrGetModule(config, BicycleConfigGroup.class);
-
-        // Add emissions configuration
-        EmissionsConfigGroup eConfig = ConfigUtils.addOrGetModule(config, EmissionsConfigGroup.class);
-        eConfig.setDetailedColdEmissionFactorsFile(HBEFA_FILE_COLD_DETAILED);
-        eConfig.setDetailedWarmEmissionFactorsFile(HBEFA_FILE_WARM_DETAILED);
-        eConfig.setAverageColdEmissionFactorsFile(HBEFA_FILE_COLD_AVERAGE);
-        eConfig.setAverageWarmEmissionFactorsFile(HBEFA_FILE_WARM_AVERAGE);
-        eConfig.setHbefaTableConsistencyCheckingLevel(EmissionsConfigGroup.HbefaTableConsistencyCheckingLevel.consistent);
-        eConfig.setDetailedVsAverageLookupBehavior(EmissionsConfigGroup.DetailedVsAverageLookupBehavior.tryDetailedThenTechnologyAverageThenAverageTable);
-        eConfig.setEmissionsComputationMethod(EmissionsConfigGroup.EmissionsComputationMethod.StopAndGoFraction);
-
-        ConfigUtils.loadConfig(config, drtConfig);
+		ConfigUtils.loadConfig(config, drtConfig);
 
 		//modify output directory and runId
 		config.controller().setOutputDirectory(config.controller().getOutputDirectory() + "-drt");
@@ -375,11 +279,9 @@ public class OpenBerlinDrtScenario extends OpenBerlinScenario {
 		return scenario;
 	}
 
+	@Override
 	protected void prepareScenario(Scenario scenario) {
-
-		// add hbefa link attributes.
-		HbefaRoadTypeMapping roadTypeMapping = OsmHbefaMapping.build();
-		roadTypeMapping.addHbefaMappings(scenario.getNetwork());
+		super.prepareScenario(scenario);
 
 		//if the drt mode is configured as a dvrp network mode and if it has a service area
 		//the drt mode is added to the links in the service area with a buffer of +2000 meter (per default or otherwise configured in BerlinExperimentalConfigGroup)
@@ -389,29 +291,9 @@ public class OpenBerlinDrtScenario extends OpenBerlinScenario {
 		//Here (or when extending this class), you can mutate the scenario (e.g. population, network, ...)
 	}
 
+	@Override
 	protected void prepareControler(Controler controler) {
-
-		controler.addOverridingModule(new SimWrapperModule());
-
-		controler.addOverridingModule(new TravelTimeBinding());
-
-		controler.addOverridingModule(new QsimTimingModule());
-
-		// AdvancedScoring is specific to matsim-berlin!
-		if (ConfigUtils.hasModule(controler.getConfig(), AdvancedScoringConfigGroup.class)) {
-			controler.addOverridingModule(new AdvancedScoringModule());
-			controler.getConfig().scoring().setExplainScores(true);
-		} else {
-			// if the above config group is not present we still need income dependent scoring
-			// this implementation also allows for person specific asc
-			controler.addOverridingModule(new AbstractModule() {
-				@Override
-				public void install() {
-					bind(ScoringParametersForPerson.class).to(IncomeDependentUtilityOfMoneyPersonScoringParameters.class).asEagerSingleton();
-				}
-			});
-		}
-		controler.addOverridingModule(new PersonMoneyEventsAnalysisModule());
+		super.prepareControler(controler);
 
 		// drt + dvrp modules
 		controler.addOverridingModule(new MultiModeDrtModule());
