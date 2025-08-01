@@ -15,53 +15,7 @@
 	</module>
 
 	<module name="network">
-		<param name="inputNetworkFile" value="/Users/mkreuschnervsp/git/matsim-berlin/input/gartenfeld/siemensbahn/siba/gartenfeld-v6.4-network-SiBa.xml.gz" />
-	</module>
-
-	<module name="transit">
-		<param name="transitScheduleFile" value="/Users/mkreuschnervsp/git/matsim-berlin/input/gartenfeld/siemensbahn/siba/gartenfeld-v6.4-transitSchedule-SiBa.xml.gz"/>
-		<param name="useTransit" value="true"/>
-		<param name="vehiclesFile" value="/Users/mkreuschnervsp/git/matsim-berlin/input/gartenfeld/siemensbahn/siba/gartenfeld-v6.4-transitVehicles-SiBa.xml.gz"/>
-	</module>
-
-	<module name="swissRailRaptor" >
-		<!-- Sets whether intermodal access and egress modes are selected by least cost (default) or randomly chosen out of the available access / egress modes. -->
-		<param name="intermodalAccessEgressModeSelection" value="CalcLeastCostModePerStop" />
-		<param name="intermodalLegOnlyHandling" value="forbid" />
-		<!-- Possible values: Default,Individual -->
-		<param name="scoringParameters" value="Default" />
-		<!-- Defines whether all potential transfers are precomputed at the beginning of the simulation (Initial) or whether they are constructed on-demand when needed (Adaptive). The former incurs potentially long up-front caclulations, but quicker routing. The latter avoids any initial computation, but may require longer routing time. -->
-		<param name="transferCalculation" value="Initial" />
-		<param name="transferPenaltyBaseCost" value="0.0" />
-		<param name="transferPenaltyCostPerTravelTimeHour" value="0.0" />
-		<param name="transferPenaltyMaxCost" value="Infinity" />
-		<param name="transferPenaltyMinCost" value="-Infinity" />
-		<!-- time deducted from transfer walk leg during transfers between pt legs in order to avoid missing a vehicle by a few seconds due to delays. -->
-		<param name="transferWalkMargin" value="5.0" />
-		<!-- If true, SwissRailRaptor tries to detect when agents cannot board a vehicle in the previous iteration because it is already full and tries to find an alternative route instead. -->
-		<param name="useCapacityConstraints" value="false" />
-		<param name="useIntermodalAccessEgress" value="true" />
-		<param name="useModeMappingForPassengers" value="false" />
-		<param name="useRangeQuery" value="false" />
-		<parameterset type="intermodalAccessEgress" >
-			<!-- Radius from the origin / destination coord in which transit stops are searched. Only if less than 2 transit stops are found the search radius is increased step-wise until the maximum search radius set in param radius is reached. -->
-			<param name="initialSearchRadius" value="40000.0" />
-			<!-- Radius from the origin / destination coord in which transit stops are accessible by this mode. -->
-			<param name="maxRadius" value="40000.0" />
-			<param name="mode" value="drt" />
-			<!-- If less than 2 stops were found in initialSearchRadius take the distance of the closest transit stop and add this extension radius to search again.The search radius will not exceed the maximum search radius set in param radius. Default is 200 meters. -->
-			<param name="searchExtensionRadius" value="1000.0" />
-			<!-- Name of the transit stop attribute used to filter stops that should be included in the set of potential stops for access and egress. The attribute should be of type String. 'null' disables the filter and all stops within the specified radius will be used. -->
-			<param name="stopFilterAttribute" value="allowDrtAccessEgress" />
-			<!-- Only stops where the filter attribute has the value specified here will be considered as access or egress stops. -->
-			<param name="stopFilterValue" value="true" />
-		</parameterset>
-		<parameterset type="intermodalAccessEgress" >
-			<param name="initialSearchRadius" value="1000.0" />
-			<param name="maxRadius" value="1000.0" />
-			<param name="mode" value="walk" />
-			<param name="searchExtensionRadius" value="0.1" />
-		</parameterset>
+		<param name="inputNetworkFile" value="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/input/gartenfeld-v6.4.network.xml.gz" />
 	</module>
 
 	<module name="simwrapper" >
@@ -69,14 +23,14 @@
 			<param name="context" value="" />
 			<param name="mapCenter" value="13.39,52.51" />
 			<param name="mapZoomLevel" value="9.1" />
-			<param name="shp" value="./area/area.shp" />
+			<param name="shp" value="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/input/area/area.shp" />
 		</parameterset>
 		<parameterset type="params" >
 			<param name="context" value="gartenfeld" />
 			<param name="mapCenter" value="13.24,52.55" />
 			<param name="mapZoomLevel" value="14.2" />
 			<!-- Make sure this shp file is present relative to the config path -->
-			<param name="shp" value="./area/gartenfeld-shape.shp" />
+			<param name="shp" value="https://svn.vsp.tu-berlin.de/repos/public-svn/matsim/scenarios/countries/de/gartenfeld/input/area/gartenfeld-shape.shp" />
 		</parameterset>
 	</module>
 
