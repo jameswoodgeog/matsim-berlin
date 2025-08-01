@@ -3,7 +3,6 @@ package org.matsim.legacy.run.dynamicShutdown;
 import com.google.inject.Inject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.matsim.analysis.ModeChoiceCoverageControllerListener;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
@@ -40,7 +39,7 @@ import java.util.Map.Entry;
 public class ModeChoiceCoverageControlerListener implements StartupListener, IterationEndsListener,
         ShutdownListener {
 
-    private final static Logger log = LogManager.getLogger(ModeChoiceCoverageControllerListener.class);
+    private final static Logger log = LogManager.getLogger(ModeChoiceCoverageControlerListener.class);
 
 
     private final Map<Integer, BufferedWriter> modeOutMap = new HashMap<>();

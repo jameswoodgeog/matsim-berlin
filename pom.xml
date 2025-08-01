@@ -7,7 +7,7 @@
 
 		<!-- PR-labelled release -->
 <!--		<version>2025.0-PR3862</version>-->
-		<version>2026.0-PR4154</version>
+		<version>2026.0-PR4090</version>
 
 		<!-- snapshot == not recommended: rather use PR-labelled release!-->
 <!--		<version>2026.0-SNAPSHOT</version>-->
