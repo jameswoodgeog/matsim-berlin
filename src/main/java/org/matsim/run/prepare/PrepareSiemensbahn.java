@@ -70,8 +70,8 @@ public class PrepareSiemensbahn {
 		var Gartenfeld = network.getFactory().createNode(Id.createNodeId("pt_116440_SuburbanRailway"), new Coord(788060.58, 5830351.63));
 
 		//Bus
-		var NeuesGartenfeldWest = network.getFactory().createNode(Id.createNodeId("pt_116448_bus"), new Coord( 787389.90, 5830856.80));
-		var NeuesGartenfeldOst = network.getFactory().createNode(Id.createNodeId("pt_116449_bus"), new Coord( 787740.50, 5830721.86));
+		var NeuesGartenfeldWest = network.getFactory().createNode(Id.createNodeId("pt_116448_bus"), new Coord( 787449.93, 5830925.63));
+		var NeuesGartenfeldOst = network.getFactory().createNode(Id.createNodeId("pt_116449_bus"), new Coord( 787877.54, 5830627.37));
 		var SGartenfeld = network.getFactory().createNode(Id.createNodeId("pt_116440_bus"), new Coord(787979.14, 5830351.22));
 		var PaulsternstrasseGartenfeldenerstrasse = network.getNodes().get(Id.createNodeId("pt_85700_bus"));
 		var UPaulsternstrasse = network.getNodes().get(Id.createNodeId("pt_293114_bus"));
@@ -314,10 +314,10 @@ public class PrepareSiemensbahn {
 
 		//Bus
 		var stop01_bus_e_w=scheduleFactory.createTransitRouteStop(stop01_bus_facility_e_w,0,0);
-		var stop02_bus_e_w=scheduleFactory.createTransitRouteStop(stop02_bus_facility_e_w,102,112);
-		var stop03_bus_e_w=scheduleFactory.createTransitRouteStop(stop03_bus_facility_e_w,154,164);
-		var stop04_bus_e_w=scheduleFactory.createTransitRouteStop(stop04_bus_facility_e_w,236,246);
-		var stop05_bus_e_w=scheduleFactory.createTransitRouteStop(stop05_bus_facility_e_w,309,309);
+		var stop02_bus_e_w=scheduleFactory.createTransitRouteStop(stop02_bus_facility_e_w,100,110);
+		var stop03_bus_e_w=scheduleFactory.createTransitRouteStop(stop03_bus_facility_e_w,175,185);
+		var stop04_bus_e_w=scheduleFactory.createTransitRouteStop(stop04_bus_facility_e_w,250,260);
+		var stop05_bus_e_w=scheduleFactory.createTransitRouteStop(stop05_bus_facility_e_w,390,390);
 
 		// stations w > e
 		//S-Bahn
@@ -333,10 +333,10 @@ public class PrepareSiemensbahn {
 
 		//Bus
 		var stop01_bus_w_e=scheduleFactory.createTransitRouteStop(stop01_bus_facility_w_e,0,0);
-		var stop02_bus_w_e=scheduleFactory.createTransitRouteStop(stop02_bus_facility_w_e,48,58);
-		var stop03_bus_w_e=scheduleFactory.createTransitRouteStop(stop03_bus_facility_w_e,111,121);
-		var stop04_bus_w_e=scheduleFactory.createTransitRouteStop(stop04_bus_facility_w_e,194,204);
-		var stop05_bus_w_e=scheduleFactory.createTransitRouteStop(stop05_bus_facility_w_e,274,284);
+		var stop02_bus_w_e=scheduleFactory.createTransitRouteStop(stop02_bus_facility_w_e,130,140);
+		var stop03_bus_w_e=scheduleFactory.createTransitRouteStop(stop03_bus_facility_w_e,205,215);
+		var stop04_bus_w_e=scheduleFactory.createTransitRouteStop(stop04_bus_facility_w_e,280,290);
+		var stop05_bus_w_e=scheduleFactory.createTransitRouteStop(stop05_bus_facility_w_e,390,390);
 
 		//route
 		//S-Bahn
