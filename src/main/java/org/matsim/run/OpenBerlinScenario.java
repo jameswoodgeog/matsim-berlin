@@ -68,6 +68,7 @@ public class OpenBerlinScenario extends MATSimApplication {
 	@Override
 	protected Config prepareConfig(Config config) {
 
+
 		SimWrapperConfigGroup sw = ConfigUtils.addOrGetModule(config, SimWrapperConfigGroup.class);
 
 		if (sample.isSet()) {
